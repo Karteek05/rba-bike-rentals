@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import { useCallback, useEffect, useState } from "react";
 import { useParams } from "next/navigation";
@@ -127,6 +127,7 @@ export default function BookPage() {
   const [durationBucket, setDurationBucket] = useState<DurationBucket>("day");
   const [durationValue, setDurationValue] = useState(1);
   const [extraHelmet, setExtraHelmet] = useState(false);
+  const [doorstepDelivery, setDoorstepDelivery] = useState(false);
   const [coupon, setCoupon] = useState("");
   const [quote, setQuote] = useState<Quote | null>(null);
   const [quoteLoading, setQuoteLoading] = useState(false);
@@ -335,7 +336,7 @@ export default function BookPage() {
           </div>
 
           <div className="lg:sticky lg:top-24 h-fit">
-            <div className="card border border-black/10 p-6">
+            <div className="bg-white rounded-[24px] shadow-[rgba(0,0,0,0.12)_0px_4px_16px_0px] p-6">
               <h2 className="text-xl font-bold mb-5">Reserve this bike</h2>
 
               <div className="mb-4">
@@ -345,7 +346,7 @@ export default function BookPage() {
                     <button
                       key={d.key}
                       onClick={() => setDurationBucket(d.key)}
-                      className={`chip text-xs py-1.5 px-3 ${durationBucket === d.key ? "chip-active" : ""}`}
+                      className={`rounded-full text-xs py-1.5 px-4 transition-colors font-medium ${durationBucket === d.key ? "bg-black text-white" : "bg-[#efefef] text-black hover:bg-[#e2e2e2]"}`}
                     >
                       {d.label}
                     </button>
@@ -389,6 +390,23 @@ export default function BookPage() {
                 </button>
               </div>
 
+              <div className="mb-4 flex items-center justify-between py-3 border-t border-black/5">
+                <div>
+                  <div className="text-sm font-medium flex items-center gap-1.5">
+                    <Icon name="location" className="w-4 h-4 text-black" /> Doorstep Delivery
+                  </div>
+                  <div className="text-xs text-uber-body-gray">Est. +₹150 fee (collected at delivery)</div>
+                </div>
+                <button
+                  onClick={() => setDoorstepDelivery(!doorstepDelivery)}
+                  className={`relative w-11 h-6 rounded-full transition-colors duration-200 ${doorstepDelivery ? "bg-black" : "bg-uber-muted-gray"}`}
+                  role="switch"
+                  aria-checked={doorstepDelivery}
+                >
+                  <span className={`absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full shadow transition-transform duration-200 ${doorstepDelivery ? "translate-x-5" : "translate-x-0"}`} />
+                </button>
+              </div>
+
               <div className="mb-4 border-t border-black/5 pt-4">
                 <label className="block text-xs font-semibold uppercase tracking-wider text-uber-body-gray mb-2">Coupon Code</label>
                 <input
@@ -416,10 +434,14 @@ export default function BookPage() {
                     <QuoteRow label="Base fare" value={`₹${quote.base_amount.toLocaleString()}`} />
                     <QuoteRow label="Duration" value={`₹${quote.duration_amount.toLocaleString()}`} />
                     {quote.addon_amount > 0 && <QuoteRow label="Add-ons (helmet)" value={`₹${quote.addon_amount.toLocaleString()}`} />}
+                    {doorstepDelivery && <QuoteRow label="Delivery fee (estimate)" value={`₹150`} />}
                     {quote.coupon_discount > 0 && <QuoteRow label="Coupon discount" value={`-₹${quote.coupon_discount.toLocaleString()}`} />}
                     <QuoteRow label="Security deposit" value={`₹${quote.deposit_amount.toLocaleString()}`} />
                     <QuoteRow label="Tax" value={`₹${quote.tax_amount.toLocaleString()}`} />
-                    <QuoteRow label="Total payable" value={`₹${quote.total_payable.toLocaleString()}`} highlight />
+                    <QuoteRow label="Total payable" value={`₹${(quote.total_payable + (doorstepDelivery ? 150 : 0)).toLocaleString()}`} highlight />
+                    {doorstepDelivery && (
+                       <p className="text-[10px] text-orange-600 mt-1 font-medium text-right">Delivery fee collected separately</p>
+                    )}
                     <p className="text-xs text-uber-muted-gray mt-2">
                       Includes {quote.km_included} km · ₹{quote.excess_km_rate}/km extra
                     </p>
@@ -427,11 +449,36 @@ export default function BookPage() {
                 ) : null}
               </div>
 
+              <div className="bg-[#f7f7f7] rounded-2xl p-5 mb-6 border border-black/5">
+                <h3 className="text-sm font-bold text-black mb-3 flex items-center gap-2">
+                  <Icon name="shield" className="w-4 h-4" /> 
+                  Rental Policies
+                </h3>
+                <ul className="space-y-2 text-[13px] text-uber-body-gray">
+                  <li className="flex justify-between items-center">
+                    <span>Cancellation</span>
+                    <span className="font-semibold text-black text-right">Free up to 24h</span>
+                  </li>
+                  <li className="flex justify-between items-center">
+                    <span>Late Return</span>
+                    <span className="font-semibold text-black text-right">₹50/hr after grace</span>
+                  </li>
+                  <li className="flex justify-between items-center">
+                    <span>Deposit Refund</span>
+                    <span className="font-semibold text-black text-right">Within 24h of drop</span>
+                  </li>
+                  <li className="flex justify-between items-center">
+                    <span>Fuel</span>
+                    <span className="font-semibold text-black text-right">Return same level</span>
+                  </li>
+                </ul>
+              </div>
+
               {bookingError && <p className="text-red-600 text-xs mb-3">{bookingError}</p>}
               <button
                 onClick={handleReserve}
                 disabled={bookingLoading || quoteLoading || !quote}
-                className="btn-primary w-full py-3.5 text-base relative disabled:opacity-50 disabled:cursor-not-allowed"
+                className="w-full py-4 text-base relative disabled:opacity-50 disabled:cursor-not-allowed rounded-full bg-black text-white hover:bg-[#e2e2e2] hover:text-black transition-colors font-bold"
               >
                 {bookingLoading ? (
                   <span className="flex items-center justify-center gap-2">
