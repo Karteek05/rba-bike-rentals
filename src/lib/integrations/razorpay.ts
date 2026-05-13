@@ -65,6 +65,71 @@ export async function createRazorpayOrder(params: {
   };
 }
 
+export async function createRazorpayRefund(params: {
+  paymentId: string;
+  amountInPaise: number;
+  notes?: Record<string, string>;
+}): Promise<{
+  provider: "razorpay";
+  refund_id: string;
+  payment_id: string;
+  amount: number;
+  currency: "INR";
+  status: string;
+}> {
+  const keyId = process.env.RAZORPAY_KEY_ID;
+  const keySecret = process.env.RAZORPAY_KEY_SECRET;
+  if (!keyId || !keySecret) {
+    throw new ApiException(
+      500,
+      "razorpay_env_missing",
+      "Razorpay keys are not configured."
+    );
+  }
+
+  const authHeader = Buffer.from(`${keyId}:${keySecret}`).toString("base64");
+  const response = await fetch(
+    `https://api.razorpay.com/v1/payments/${params.paymentId}/refund`,
+    {
+      method: "POST",
+      headers: {
+        Authorization: `Basic ${authHeader}`,
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({
+        amount: params.amountInPaise,
+        speed: "normal",
+        notes: {
+          platform: "rbabikerentals",
+          ...(params.notes ?? {})
+        }
+      })
+    }
+  );
+
+  if (!response.ok) {
+    const text = await response.text();
+    throw new ApiException(502, "razorpay_refund_create_failed", text);
+  }
+
+  const refund = (await response.json()) as {
+    id: string;
+    payment_id: string;
+    amount: number;
+    currency: "INR";
+    status: string;
+  };
+
+  return {
+    provider: "razorpay",
+    refund_id: refund.id,
+    payment_id: refund.payment_id,
+    amount: refund.amount,
+    currency: refund.currency,
+    status: refund.status
+  };
+}
+
 export function verifyRazorpaySignature(params: {
   orderId: string;
   paymentId: string;

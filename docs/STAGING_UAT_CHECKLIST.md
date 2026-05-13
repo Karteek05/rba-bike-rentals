@@ -12,12 +12,15 @@ Last updated: April 19, 2026
    - `RAZORPAY_KEY_ID`
    - `RAZORPAY_KEY_SECRET`
    - `RAZORPAY_WEBHOOK_SECRET`
+   - `GOOGLE_MAPS_API_KEY`
    - `SETU_CLIENT_ID`
    - `SETU_CLIENT_SECRET`
    - `SETU_PRODUCT_INSTANCE_ID`
    - `SETU_DIGILOCKER_BASE_URL`
    - `SETU_REDIRECT_URL`
    - `SETU_WEBHOOK_SECRET`
+   - `SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`, `SMTP_PASS`, `EMAIL_FROM`, `ADMIN_EMAIL`
+   - `CIBIL_PROVIDER_MODE=mock` until live CIBIL credentials are handed off
    - `JOB_SECRET`
 2. Set `ALLOW_DEV_HEADERS=false` in staging.
 3. Set `APP_ENV=production` in staging-like validation environments that are meant to mirror production behavior.
@@ -33,12 +36,14 @@ Last updated: April 19, 2026
    - admin has full operational visibility
 
 ## 3) Payment Validation
-1. Create booking in `payment_pending`.
-2. Create Razorpay order via `/api/payments/order`.
+1. Create booking and confirm it reaches `admin_review` after KYC is verified.
+2. Admin approves it and confirms it moves to `payment_pending`.
+3. Create Razorpay order via `/api/payments/order`.
 3. Re-hit `/api/payments/order` for the same booking and confirm the existing open order is reused.
 4. Confirm a customer cannot create a payment order for another customer booking.
 5. Trigger webhook test event to `/api/webhooks/razorpay`.
 6. Confirm booking moves to `confirmed` on `payment.captured`.
+7. Confirm admin refund creation via `/api/payments/refund` after captured payment reconciliation.
 
 ## 4) KYC Validation
 1. Start KYC: `/api/kyc/digilocker/start`.
@@ -74,6 +79,9 @@ Last updated: April 19, 2026
 4. Validate dashboard map rendering:
    - Partner page (`/partner`) shows fleet-only map markers.
    - Admin page (`/admin`) shows platform tracking.
+5. Validate map utility APIs:
+   - `POST /api/maps/distance`
+   - `POST /api/maps/reverse-geocode`
 
 ## 7) UI UAT Flows
 1. Customer dashboard:

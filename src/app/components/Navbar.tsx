@@ -8,7 +8,8 @@ const NAV_LINKS = [
   { href: "/browse", label: "Browse Bikes" },
   { href: "/#how-it-works", label: "How It Works" },
   { href: "/my-bookings", label: "My Bookings" },
-  { href: "/kyc", label: "KYC" }
+  { href: "/kyc", label: "KYC" },
+  { href: "/login", label: "Login" }
 ];
 
 function isLinkActive(pathname: string, href: string) {

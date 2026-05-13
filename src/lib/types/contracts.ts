@@ -16,16 +16,30 @@ export interface CreateBookingRequest {
   city: "bengaluru";
   pickup_at: string;
   drop_at: string;
+  pickup_zone?: string;
+  pickup_address?: string;
+  pickup_latitude?: number;
+  pickup_longitude?: number;
   duration_bucket: "hour" | "day" | "week" | "month";
   duration_value: number;
   km_limit_bucket: "day" | "week" | "month";
   km_limit_value: number;
   extra_helmet_count?: number;
   coupon_code?: string;
+  customer_profile?: BookingCustomerProfile;
 }
 
 export interface CreateBookingResponse {
   booking: Booking;
+}
+
+export interface BookingCustomerProfile {
+  legal_name: string;
+  email: string;
+  mobile: string;
+  pan_number: string;
+  date_of_birth: string;
+  cibil_consent: boolean;
 }
 
 export interface ExtendBookingRequest {
@@ -71,6 +85,10 @@ export interface RejectBookingRequest {
   reason: string;
 }
 
+export interface ApproveBookingRequest {
+  note?: string;
+}
+
 export interface KycStartRequest {
   user_id: string;
 }
@@ -109,6 +127,29 @@ export interface ExtensionResponse {
 
 export interface CreatePaymentOrderRequest {
   booking_id: string;
+}
+
+export interface RefundPaymentRequest {
+  booking_id: string;
+  amount?: number;
+  reason?: string;
+}
+
+export interface MapsReverseGeocodeRequest {
+  latitude: number;
+  longitude: number;
+}
+
+export interface MapsDistanceRequest {
+  origin: {
+    latitude: number;
+    longitude: number;
+  };
+  destination: {
+    latitude: number;
+    longitude: number;
+  };
+  mode?: "driving" | "walking" | "bicycling" | "transit";
 }
 
 export interface ReportDamageRequest {

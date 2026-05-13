@@ -13,8 +13,23 @@ type Booking = {
   cancel_reason?: string;
   pickup_at?: string;
   drop_at?: string;
+  pickup_zone?: string | null;
   quote?: { total_payable?: number };
   created_at?: string;
+  user?: {
+    name?: string | null;
+    email?: string | null;
+    phone?: string | null;
+    pan_number?: string | null;
+    date_of_birth?: string | null;
+  } | null;
+  kyc?: {
+    status?: string;
+    aadhaar_verified?: boolean;
+    dl_verified?: boolean;
+    cibil_score?: number | null;
+    cibil_risk_band?: string | null;
+  } | null;
 };
 
 type KycItem = {
@@ -24,6 +39,7 @@ type KycItem = {
   aadhaar_verified?: boolean;
   dl_verified?: boolean;
   cibil_score?: number;
+  cibil_risk_band?: string | null;
   failure_reason?: string;
 };
 
@@ -213,6 +229,27 @@ export default function AdminDashboardPage() {
         setError(json?.error?.message ?? "Failed to reject booking");
       } else {
         showSuccess(`Booking ${bookingId} rejected.`);
+        await refreshAll();
+      }
+    } finally {
+      setLoading(null);
+    }
+  }
+
+  async function approveBooking(bookingId: string) {
+    setError(null);
+    setLoading(`approve-${bookingId}`);
+    try {
+      const res = await fetch(`/api/admin/bookings/${bookingId}/approve`, {
+        method: "POST",
+        headers,
+        body: JSON.stringify({ note: "Approved for payment after ops review" })
+      });
+      const json = await res.json();
+      if (!res.ok || !json.ok) {
+        setError(json?.error?.message ?? "Failed to approve booking");
+      } else {
+        showSuccess(`Booking ${bookingId} approved for payment.`);
         await refreshAll();
       }
     } finally {
@@ -462,6 +499,7 @@ export default function AdminDashboardPage() {
   const filterTabs = [
     { key: "all", label: "All" },
     { key: "pending_kyc", label: "Pending KYC" },
+    { key: "admin_review", label: "Admin Review" },
     { key: "payment_pending", label: "Payment Pending" },
     { key: "confirmed", label: "Confirmed" },
     { key: "ongoing", label: "Ongoing" },
@@ -914,6 +952,7 @@ export default function AdminDashboardPage() {
                     <th>Pickup</th>
                     <th>Drop</th>
                     <th>Status</th>
+                    <th>Risk</th>
                     <th>Amount</th>
                     <th>Actions</th>
                   </tr>
@@ -922,12 +961,34 @@ export default function AdminDashboardPage() {
                   {filteredBookings.map((booking) => (
                     <tr key={booking.id}>
                       <td className="td-id">{booking.id}</td>
-                      <td className="td-muted">{booking.user_id}</td>
+                      <td className="td-muted">
+                        <div style={{ fontWeight: 700, color: "var(--on-surface)" }}>
+                          {booking.user?.name ?? booking.user_id}
+                        </div>
+                        <div className="text-xs text-muted">{booking.user?.email ?? booking.user_id}</div>
+                        {booking.user?.phone && <div className="text-xs text-muted">{booking.user.phone}</div>}
+                      </td>
                       <td className="td-muted">{booking.vehicle_id}</td>
-                      <td className="td-muted">{formatDate(booking.pickup_at)}</td>
+                      <td className="td-muted">
+                        <div>{formatDate(booking.pickup_at)}</div>
+                        <div className="text-xs text-muted">{booking.pickup_zone ?? "Bengaluru"}</div>
+                      </td>
                       <td className="td-muted">{formatDate(booking.drop_at)}</td>
                       <td>
                         <StatusBadge status={booking.status} />
+                      </td>
+                      <td>
+                        <div className="flex gap-2" style={{ flexWrap: "wrap" }}>
+                          <span className="spec-chip">DL {booking.kyc?.dl_verified ? "ok" : "pending"}</span>
+                          <span className="spec-chip">Aadhaar {booking.kyc?.aadhaar_verified ? "ok" : "pending"}</span>
+                          {booking.kyc?.cibil_score ? (
+                            <span className="spec-chip">
+                              CIBIL {booking.kyc.cibil_score} {booking.kyc.cibil_risk_band ?? ""}
+                            </span>
+                          ) : (
+                            <span className="spec-chip">CIBIL pending</span>
+                          )}
+                        </div>
                       </td>
                       <td style={{ fontWeight: 700, color: "var(--primary)" }}>
                         {booking.quote?.total_payable
@@ -935,6 +996,21 @@ export default function AdminDashboardPage() {
                           : "-"}
                       </td>
                       <td>
+                        <div className="flex gap-2" style={{ flexWrap: "wrap" }}>
+                        {booking.status === "admin_review" && (
+                          <button
+                            className="btn btn-success btn-sm"
+                            onClick={() => approveBooking(booking.id)}
+                            disabled={loading === `approve-${booking.id}`}
+                          >
+                            {loading === `approve-${booking.id}` ? (
+                              <span className="spinner" />
+                            ) : (
+                              <Icon name="checkCircle" className="w-4 h-4" />
+                            )}{" "}
+                            Approve
+                          </button>
+                        )}
                         {!["cancelled", "completed"].includes(booking.status) && (
                           <button
                             className="btn btn-danger btn-sm"
@@ -949,6 +1025,7 @@ export default function AdminDashboardPage() {
                             Reject
                           </button>
                         )}
+                        </div>
                       </td>
                     </tr>
                   ))}
@@ -1027,7 +1104,9 @@ export default function AdminDashboardPage() {
                     </div>
                     {item.cibil_score !== undefined && (
                       <div className="flex gap-2" style={{ alignItems: "center" }}>
-                        <span className="spec-chip">CIBIL {item.cibil_score}</span>
+                        <span className="spec-chip">
+                          CIBIL {item.cibil_score} {item.cibil_risk_band ?? ""}
+                        </span>
                       </div>
                     )}
                   </div>

@@ -9,6 +9,7 @@ type Booking = {
   vehicle_id: string;
   pickup_at: string;
   drop_at: string;
+  pickup_zone?: string | null;
   quote: {
     total_payable: number;
     base_amount?: number;
@@ -16,6 +17,30 @@ type Booking = {
   };
   cancel_reason?: string;
 };
+
+type NotificationItem = {
+  id: string;
+  template_key: string;
+  payload: Record<string, unknown>;
+  created_at: string;
+};
+
+type RazorpayCheckout = new (options: {
+  key: string;
+  amount: number;
+  currency: string;
+  order_id: string;
+  name: string;
+  description: string;
+  handler: () => void;
+  prefill?: { name?: string; email?: string; contact?: string };
+}) => { open: () => void };
+
+declare global {
+  interface Window {
+    Razorpay?: RazorpayCheckout;
+  }
+}
 
 const API_HEADERS = {
   "content-type": "application/json",
@@ -67,6 +92,7 @@ export default function MyBookingsPage() {
   const [actionLoading, setActionLoading] = useState<string | null>(null);
   const [successMsg, setSuccessMsg] = useState<string | null>(null);
   const [tab, setTab] = useState("all");
+  const [notifications, setNotifications] = useState<NotificationItem[]>([]);
 
   const showSuccess = (msg: string) => {
     setSuccessMsg(msg);
@@ -90,9 +116,72 @@ export default function MyBookingsPage() {
     }
   }, []);
 
+  const fetchNotifications = useCallback(async () => {
+    try {
+      const res = await fetch("/api/notifications?limit=5", { headers: API_HEADERS });
+      const json = await res.json();
+      if (res.ok && json.ok) {
+        setNotifications(json.data.items);
+      }
+    } catch {
+      setNotifications([]);
+    }
+  }, []);
+
   useEffect(() => {
     fetchBookings();
-  }, [fetchBookings]);
+    fetchNotifications();
+  }, [fetchBookings, fetchNotifications]);
+
+  function loadRazorpayScript() {
+    return new Promise<boolean>((resolve) => {
+      if (window.Razorpay) {
+        resolve(true);
+        return;
+      }
+      const script = document.createElement("script");
+      script.src = "https://checkout.razorpay.com/v1/checkout.js";
+      script.onload = () => resolve(true);
+      script.onerror = () => resolve(false);
+      document.body.appendChild(script);
+    });
+  }
+
+  async function handlePay(booking: Booking) {
+    setActionLoading(`pay-${booking.id}`);
+    setError(null);
+    try {
+      const res = await fetch("/api/payments/order", {
+        method: "POST",
+        headers: API_HEADERS,
+        body: JSON.stringify({ booking_id: booking.id })
+      });
+      const json = await res.json();
+      if (!res.ok || !json.ok) {
+        setError(json?.error?.message ?? "Payment order failed");
+        return;
+      }
+      const order = json.data.order;
+      const loaded = await loadRazorpayScript();
+      if (!loaded || !window.Razorpay) {
+        showSuccess("Payment order created. Razorpay checkout could not load in this browser.");
+        return;
+      }
+      new window.Razorpay({
+        key: order.key_id,
+        amount: order.amount,
+        currency: order.currency,
+        order_id: order.order_id,
+        name: "RBA Bike Rentals",
+        description: booking.id,
+        handler: () => showSuccess("Payment submitted. Confirmation appears after Razorpay webhook capture.")
+      }).open();
+    } catch {
+      setError("Network error creating payment order.");
+    } finally {
+      setActionLoading(null);
+    }
+  }
 
   async function handleCancel(id: string) {
     if (!confirm("Are you sure you want to cancel this booking? Cancellation charges may apply.")) return;
@@ -147,6 +236,9 @@ export default function MyBookingsPage() {
 
   const TABS = [
     { key: "all", label: "All" },
+    { key: "pending_kyc", label: "KYC" },
+    { key: "admin_review", label: "Review" },
+    { key: "payment_pending", label: "Pay" },
     { key: "confirmed", label: "Confirmed" },
     { key: "ongoing", label: "Ongoing" },
     { key: "completed", label: "Completed" },
@@ -187,6 +279,20 @@ export default function MyBookingsPage() {
             <button onClick={() => setError(null)} className="text-red-400 hover:text-red-600" aria-label="Dismiss error">
               <Icon name="close" className="w-4 h-4" />
             </button>
+          </div>
+        )}
+
+        {notifications.length > 0 && (
+          <div className="mb-6 bg-uber-chip-gray rounded-xl p-4">
+            <div className="text-xs font-semibold uppercase text-uber-body-gray mb-2">Latest updates</div>
+            <div className="grid gap-2">
+              {notifications.map((item) => (
+                <div key={item.id} className="text-sm flex items-center justify-between gap-3">
+                  <span className="font-medium">{item.template_key.replace(/_/g, " ")}</span>
+                  <span className="text-xs text-uber-muted-gray">{fmt(item.created_at)}</span>
+                </div>
+              ))}
+            </div>
           </div>
         )}
 
@@ -232,9 +338,10 @@ export default function MyBookingsPage() {
           <div className="flex flex-col gap-4">
             {filtered.map((booking) => {
               const isActionable = ["confirmed", "ongoing", "extended"].includes(booking.status);
-              const isCancellable = ["confirmed", "pending_kyc", "payment_pending"].includes(booking.status);
+              const isCancellable = ["confirmed", "pending_kyc", "admin_review", "payment_pending"].includes(booking.status);
               const actCancel = actionLoading === `cancel-${booking.id}`;
               const actExtend = actionLoading === `extend-${booking.id}`;
+              const actPay = actionLoading === `pay-${booking.id}`;
               const vIcon = VEHICLE_ICONS[booking.vehicle_id] ?? "scooter";
               const vName = VEHICLE_NAMES[booking.vehicle_id] ?? booking.vehicle_id;
 
@@ -265,6 +372,10 @@ export default function MyBookingsPage() {
                             <span className="text-xs text-uber-body-gray block">Total</span>
                             <span className="font-bold text-black">₹{booking.quote.total_payable.toLocaleString()}</span>
                           </div>
+                          <div>
+                            <span className="text-xs text-uber-body-gray block">Pickup zone</span>
+                            <span className="font-medium">{booking.pickup_zone ?? "Bengaluru"}</span>
+                          </div>
                         </div>
 
                         <div className="text-xs text-uber-muted-gray font-mono">ID: {booking.id}</div>
@@ -274,15 +385,23 @@ export default function MyBookingsPage() {
 
                     {(isActionable || isCancellable) && (
                       <div className="mt-4 pt-4 border-t border-black/5 flex gap-3 flex-wrap">
-                        {isActionable && (
-                          <button
-                            onClick={() => handleExtend(booking.id)}
-                            disabled={actExtend}
-                            className="btn-primary text-sm py-2 px-5 disabled:opacity-50"
-                          >
-                            {actExtend ? "Extending..." : "Extend +1 Day"}
-                          </button>
-                        )}
+                      {(isActionable || booking.status === "payment_pending") && (
+                        <button
+                          onClick={() =>
+                            booking.status === "payment_pending" ? handlePay(booking) : handleExtend(booking.id)
+                          }
+                          disabled={booking.status === "payment_pending" ? actPay : actExtend}
+                          className="btn-primary text-sm py-2 px-5 disabled:opacity-50"
+                        >
+                          {booking.status === "payment_pending"
+                            ? actPay
+                              ? "Opening..."
+                              : "Pay Now"
+                            : actExtend
+                              ? "Extending..."
+                              : "Extend +1 Day"}
+                        </button>
+                      )}
                         {isCancellable && (
                           <button
                             onClick={() => handleCancel(booking.id)}

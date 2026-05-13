@@ -127,13 +127,21 @@ export default function BookPage() {
   const [durationBucket, setDurationBucket] = useState<DurationBucket>("day");
   const [durationValue, setDurationValue] = useState(1);
   const [extraHelmet, setExtraHelmet] = useState(false);
-  const [doorstepDelivery, setDoorstepDelivery] = useState(false);
   const [coupon, setCoupon] = useState("");
+  const [pickupZone, setPickupZone] = useState("Indiranagar");
+  const [pickupAddress, setPickupAddress] = useState("");
+  const [legalName, setLegalName] = useState("Rahul Customer");
+  const [profileEmail, setProfileEmail] = useState("rahul@example.com");
+  const [mobile, setMobile] = useState("+919876543210");
+  const [panNumber, setPanNumber] = useState("ABCDE1234F");
+  const [dateOfBirth, setDateOfBirth] = useState("1996-01-15");
+  const [cibilConsent, setCibilConsent] = useState(true);
   const [quote, setQuote] = useState<Quote | null>(null);
   const [quoteLoading, setQuoteLoading] = useState(false);
   const [quoteError, setQuoteError] = useState<string | null>(null);
   const [bookingLoading, setBookingLoading] = useState(false);
   const [bookingId, setBookingId] = useState<string | null>(null);
+  const [bookingStatus, setBookingStatus] = useState<string | null>(null);
   const [bookingError, setBookingError] = useState<string | null>(null);
 
   const fetchQuote = useCallback(async () => {
@@ -197,12 +205,22 @@ export default function BookPage() {
           city: "bengaluru",
           pickup_at: pickup,
           drop_at: drop,
+          pickup_zone: pickupZone,
+          pickup_address: pickupAddress || pickupZone,
           duration_bucket: durationBucket,
           duration_value: durationValue,
           km_limit_bucket: durationBucket,
           km_limit_value: 120,
           extra_helmet_count: extraHelmet ? 1 : 0,
-          coupon_code: coupon || undefined
+          coupon_code: coupon || undefined,
+          customer_profile: {
+            legal_name: legalName,
+            email: profileEmail,
+            mobile,
+            pan_number: panNumber,
+            date_of_birth: dateOfBirth,
+            cibil_consent: cibilConsent
+          }
         })
       });
       const json = await res.json();
@@ -210,6 +228,7 @@ export default function BookPage() {
         setBookingError(json?.error?.message ?? "Booking failed");
       } else {
         setBookingId(json.data.booking.id);
+        setBookingStatus(json.data.booking.status);
       }
     } catch {
       setBookingError("Network error. Please try again.");
@@ -234,20 +253,25 @@ export default function BookPage() {
   }
 
   if (bookingId) {
+    const paymentNext = bookingStatus === "payment_pending";
     return (
       <div className="min-h-screen bg-white flex items-center justify-center px-4">
         <div className="text-center max-w-md">
           <div className="w-20 h-20 rounded-full bg-black text-white flex items-center justify-center mx-auto mb-6">
             <Icon name="checkCircle" className="w-10 h-10" />
           </div>
-          <h1 className="text-4xl font-bold mb-3">Booking Confirmed</h1>
-          <p className="text-uber-body-gray mb-2 text-sm">Your booking is confirmed. Keep this ID for pickup verification.</p>
+          <h1 className="text-4xl font-bold mb-3">{paymentNext ? "Ready for Payment" : "Request Submitted"}</h1>
+          <p className="text-uber-body-gray mb-2 text-sm">
+            {paymentNext
+              ? "Admin approved your request. Continue to payment from My Bookings."
+              : "We sent your request for KYC and admin review before payment opens."}
+          </p>
           <div className="bg-uber-chip-gray rounded-xl px-6 py-4 my-6 font-mono text-lg font-bold tracking-widest break-all">
             {bookingId}
           </div>
           {quote && (
             <p className="text-uber-body-gray text-sm mb-6">
-              Total paid: <strong className="text-black">₹{quote.total_payable.toLocaleString()}</strong>
+              Estimated total: <strong className="text-black">₹{quote.total_payable.toLocaleString()}</strong>
             </p>
           )}
           <div className="flex flex-col sm:flex-row gap-3 justify-center">
@@ -390,21 +414,28 @@ export default function BookPage() {
                 </button>
               </div>
 
-              <div className="mb-4 flex items-center justify-between py-3 border-t border-black/5">
-                <div>
-                  <div className="text-sm font-medium flex items-center gap-1.5">
-                    <Icon name="location" className="w-4 h-4 text-black" /> Doorstep Delivery
-                  </div>
-                  <div className="text-xs text-uber-body-gray">Est. +₹150 fee (collected at delivery)</div>
-                </div>
-                <button
-                  onClick={() => setDoorstepDelivery(!doorstepDelivery)}
-                  className={`relative w-11 h-6 rounded-full transition-colors duration-200 ${doorstepDelivery ? "bg-black" : "bg-uber-muted-gray"}`}
-                  role="switch"
-                  aria-checked={doorstepDelivery}
+              <div className="mb-4 border-t border-black/5 pt-4">
+                <label className="block text-xs font-semibold uppercase tracking-wider text-uber-body-gray mb-2">
+                  Pickup zone
+                </label>
+                <select
+                  className="w-full border border-black rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-black mb-3"
+                  value={pickupZone}
+                  onChange={(event) => setPickupZone(event.target.value)}
                 >
-                  <span className={`absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full shadow transition-transform duration-200 ${doorstepDelivery ? "translate-x-5" : "translate-x-0"}`} />
-                </button>
+                  <option value="Indiranagar">Indiranagar</option>
+                  <option value="Koramangala">Koramangala</option>
+                  <option value="Whitefield">Whitefield</option>
+                  <option value="Jayanagar">Jayanagar</option>
+                  <option value="Hebbal">Hebbal</option>
+                </select>
+                <input
+                  type="text"
+                  placeholder="Apartment, landmark, or pickup note"
+                  value={pickupAddress}
+                  onChange={(event) => setPickupAddress(event.target.value)}
+                  className="w-full border border-black/20 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-black"
+                />
               </div>
 
               <div className="mb-4 border-t border-black/5 pt-4">
@@ -416,6 +447,28 @@ export default function BookPage() {
                   onChange={(e) => setCoupon(e.target.value.toUpperCase())}
                   className="w-full border border-black rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-black"
                 />
+              </div>
+
+              <div className="mb-4 border-t border-black/5 pt-4">
+                <div className="text-xs font-semibold uppercase tracking-wider text-uber-body-gray mb-3">
+                  Profile and risk consent
+                </div>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <input className="form-input" value={legalName} onChange={(event) => setLegalName(event.target.value)} placeholder="Legal name" />
+                  <input className="form-input" value={profileEmail} onChange={(event) => setProfileEmail(event.target.value)} placeholder="Email" />
+                  <input className="form-input" value={mobile} onChange={(event) => setMobile(event.target.value)} placeholder="Mobile" />
+                  <input className="form-input" value={panNumber} onChange={(event) => setPanNumber(event.target.value.toUpperCase())} placeholder="PAN" />
+                  <input className="form-input" type="date" value={dateOfBirth} onChange={(event) => setDateOfBirth(event.target.value)} />
+                </div>
+                <label className="flex items-start gap-2 text-xs text-uber-body-gray mt-3">
+                  <input
+                    type="checkbox"
+                    checked={cibilConsent}
+                    onChange={(event) => setCibilConsent(event.target.checked)}
+                    className="mt-0.5"
+                  />
+                  I consent to DigiLocker DL verification and a CIBIL risk signal for admin review.
+                </label>
               </div>
 
               <div className="border-t border-black/10 pt-4 mb-4 min-h-[120px]">
@@ -434,14 +487,10 @@ export default function BookPage() {
                     <QuoteRow label="Base fare" value={`₹${quote.base_amount.toLocaleString()}`} />
                     <QuoteRow label="Duration" value={`₹${quote.duration_amount.toLocaleString()}`} />
                     {quote.addon_amount > 0 && <QuoteRow label="Add-ons (helmet)" value={`₹${quote.addon_amount.toLocaleString()}`} />}
-                    {doorstepDelivery && <QuoteRow label="Delivery fee (estimate)" value={`₹150`} />}
                     {quote.coupon_discount > 0 && <QuoteRow label="Coupon discount" value={`-₹${quote.coupon_discount.toLocaleString()}`} />}
                     <QuoteRow label="Security deposit" value={`₹${quote.deposit_amount.toLocaleString()}`} />
                     <QuoteRow label="Tax" value={`₹${quote.tax_amount.toLocaleString()}`} />
-                    <QuoteRow label="Total payable" value={`₹${(quote.total_payable + (doorstepDelivery ? 150 : 0)).toLocaleString()}`} highlight />
-                    {doorstepDelivery && (
-                       <p className="text-[10px] text-orange-600 mt-1 font-medium text-right">Delivery fee collected separately</p>
-                    )}
+                    <QuoteRow label="Total payable" value={`₹${quote.total_payable.toLocaleString()}`} highlight />
                     <p className="text-xs text-uber-muted-gray mt-2">
                       Includes {quote.km_included} km · ₹{quote.excess_km_rate}/km extra
                     </p>
@@ -486,14 +535,14 @@ export default function BookPage() {
                       <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
                       <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
                     </svg>
-                    Reserving...
+                    Submitting...
                   </span>
                 ) : (
-                  "Reserve Now"
+                  "Submit for Admin Review"
                 )}
               </button>
 
-              <p className="text-center text-xs text-uber-muted-gray mt-3">KYC required · Secure Razorpay checkout</p>
+              <p className="text-center text-xs text-uber-muted-gray mt-3">KYC and admin approval required before Razorpay payment</p>
             </div>
           </div>
         </div>

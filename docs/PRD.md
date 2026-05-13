@@ -137,7 +137,7 @@ This PRD uses Selfspin-like feature coverage as a baseline reference (location-b
 ### 6.1 Core Types
 - `Role`: `customer | partner_investor | admin`
 - `KycStatus`: `not_started | in_progress | verified | manual_review | failed | expired`
-- `BookingStatus`: `draft | pending_kyc | payment_pending | confirmed | ongoing | extension_requested | extended | completed | cancelled`
+- `BookingStatus`: `draft | pending_kyc | admin_review | payment_pending | confirmed | ongoing | extension_requested | extended | completed | cancelled`
 
 ```ts
 interface PricingQuote {

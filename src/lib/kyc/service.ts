@@ -3,13 +3,17 @@ import {
   getKycByRequestId,
   getKycRecordOrThrow,
   getUserOrThrow,
+  listBookings,
   listManualReviewKyc,
   upsertKycRecord,
-  upsertUser
+  upsertUser,
+  updateBooking
 } from "@/lib/data/repository";
 import type { KycRecord, Role } from "@/lib/types/domain";
 import { createDigilockerRequest } from "@/lib/integrations/setu-digilocker";
 import { fetchDigilockerRequestStatus } from "@/lib/integrations/setu-digilocker";
+import { assertCanTransition } from "@/lib/bookings/state-machine";
+import { notifyAdmin, notifyUser } from "@/lib/notifications/service";
 import { ApiException } from "@/lib/utils/errors";
 import { newId } from "@/lib/utils/ids";
 
@@ -46,6 +50,40 @@ async function getOrCreateKycRecord(userId: string): Promise<KycRecord> {
       updated_at: new Date().toISOString()
     });
   }
+}
+
+async function moveVerifiedBookingsToAdminReview(userId: string, trigger: string) {
+  const user = await getUserOrThrow(userId);
+  const pendingBookings = await listBookings({ userId, status: "pending_kyc" });
+  await Promise.all(
+    pendingBookings.map(async (booking) => {
+      assertCanTransition(booking.status, "admin_review", trigger);
+      const updated = await updateBooking(booking.id, {
+        status: "admin_review",
+        updated_at: new Date().toISOString()
+      });
+      await Promise.all([
+        notifyUser({
+          userId,
+          email: user.email,
+          templateKey: "kyc_verified_booking_under_review",
+          payload: {
+            booking_id: updated.id,
+            vehicle_id: updated.vehicle_id
+          }
+        }),
+        notifyAdmin({
+          templateKey: "admin_booking_review_requested",
+          payload: {
+            booking_id: updated.id,
+            user_id: updated.user_id,
+            vehicle_id: updated.vehicle_id,
+            status: updated.status
+          }
+        })
+      ]);
+    })
+  );
 }
 
 export async function startDigilockerKyc(userId: string) {
@@ -126,6 +164,8 @@ export async function getKycStatus(userId: string) {
     aadhaar_verified: kyc.aadhaar_verified,
     dl_verified: kyc.dl_verified,
     cibil_score: kyc.cibil_score ?? null,
+    cibil_risk_band: kyc.cibil_risk_band ?? null,
+    cibil_checked_at: kyc.cibil_checked_at ?? null,
     needs_manual_review: kyc.needs_manual_review,
     updated_at: kyc.updated_at
   };
@@ -166,6 +206,10 @@ export async function handleDigilockerCallback(input: {
     ...user,
     kyc_status: status
   });
+
+  if (status === "verified") {
+    await moveVerifiedBookingsToAdminReview(current.user_id, "kyc.callback_verified");
+  }
 
   await recordAudit({
     actorId: "system_kyc_callback",
@@ -237,6 +281,8 @@ export async function approveKyc(userId: string, actorId: string) {
     kyc_status: "verified"
   });
 
+  await moveVerifiedBookingsToAdminReview(userId, "kyc.admin_approve");
+
   await recordAudit({
     actorId,
     actorRole: "admin",
@@ -278,7 +324,12 @@ export async function listPendingKycManualReview() {
   return pending.map((item) => ({
     user_id: item.user_id,
     status: item.status,
-    updated_at: item.updated_at
+    updated_at: item.updated_at,
+    aadhaar_verified: item.aadhaar_verified,
+    dl_verified: item.dl_verified,
+    cibil_score: item.cibil_score ?? null,
+    cibil_risk_band: item.cibil_risk_band ?? null,
+    failure_reason: item.failure_reason ?? null
   }));
 }
 

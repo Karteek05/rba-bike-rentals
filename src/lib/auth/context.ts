@@ -57,7 +57,8 @@ export async function requireActor(
         role: sessionRole,
         name: sessionName,
         city: "bengaluru",
-        kyc_status: "not_started"
+        kyc_status: "not_started",
+        email: session?.user?.email ?? null
       });
       role = user.role;
     }

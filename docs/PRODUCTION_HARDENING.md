@@ -32,6 +32,7 @@ This document tracks the production-safety fixes that have already been implemen
   - admin can create orders for any booking
 - The payment service now reuses an existing open payment order for a booking instead of creating duplicates on repeated requests.
 - Database schema now adds a partial unique index to allow only one `created` payment order per booking.
+- Admin refund support is wired through `POST /api/payments/refund` and stores Razorpay payment/refund identifiers for reconciliation.
 
 ### 4. KYC callback protection
 - DigiLocker callback endpoint now requires `SETU_WEBHOOK_SECRET`.
@@ -68,6 +69,8 @@ Before staging or production, configure all of the following:
 - `APP_ENV=production`
 - `BETTER_AUTH_SECRET`
 - `BETTER_AUTH_URL`
+- `GOOGLE_CLIENT_ID`
+- `GOOGLE_CLIENT_SECRET`
 - `SUPABASE_URL`
 - `SUPABASE_ANON_KEY`
 - `SUPABASE_SERVICE_ROLE_KEY`
@@ -75,11 +78,19 @@ Before staging or production, configure all of the following:
 - `RAZORPAY_KEY_ID`
 - `RAZORPAY_KEY_SECRET`
 - `RAZORPAY_WEBHOOK_SECRET`
+- `GOOGLE_MAPS_API_KEY`
 - `SETU_CLIENT_ID`
 - `SETU_CLIENT_SECRET`
 - `SETU_PRODUCT_INSTANCE_ID`
 - `SETU_REDIRECT_URL`
 - `SETU_WEBHOOK_SECRET`
+- `SMTP_HOST`
+- `SMTP_PORT`
+- `SMTP_USER`
+- `SMTP_PASS`
+- `EMAIL_FROM`
+- `ADMIN_EMAIL`
+- `CIBIL_PROVIDER_MODE`
 - `JOB_SECRET`
 
 ## Further Development Backlog

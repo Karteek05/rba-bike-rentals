@@ -8,14 +8,15 @@ import {
   getVehicleOrThrow,
   insertBooking,
   insertDamageIncident,
-  insertPaymentOrder,
   insertVehicleBlock,
   listBookings,
   listVehicleBlocks,
   upsertKycRecord,
+  upsertUser,
   updateBooking
 } from "@/lib/data/repository";
-import { createRazorpayOrder } from "@/lib/integrations/razorpay";
+import { fetchCibilSignal } from "@/lib/integrations/cibil";
+import { notifyAdmin, notifyUser } from "@/lib/notifications/service";
 import {
   computeCancellationBreakup,
   computePricingQuote,
@@ -31,6 +32,15 @@ import type { KycRecord, PricingQuote, Role } from "@/lib/types/domain";
 import { ApiException } from "@/lib/utils/errors";
 import { newId } from "@/lib/utils/ids";
 
+function normalizePan(panNumber: string) {
+  return panNumber.trim().toUpperCase();
+}
+
+function panLast4(panNumber?: string | null) {
+  const normalized = panNumber ? normalizePan(panNumber) : "";
+  return normalized ? normalized.slice(-4) : null;
+}
+
 export async function createBooking(
   input: CreateBookingRequest,
   actor: { userId: string; role: Role }
@@ -44,7 +54,7 @@ export async function createBooking(
     throw new ApiException(403, "forbidden", "Customer can create booking only for self.");
   }
 
-  const user = await getUserOrThrow(input.user_id);
+  let user = await getUserOrThrow(input.user_id);
   const vehicle = await getVehicleOrThrow(input.vehicle_id);
   let kyc: KycRecord;
   try {
@@ -62,6 +72,49 @@ export async function createBooking(
       needs_manual_review: false,
       updated_at: new Date().toISOString()
     });
+  }
+
+  const profile = input.customer_profile;
+  if (profile) {
+    const cibilConsentAt = profile.cibil_consent ? new Date().toISOString() : null;
+    user = await upsertUser({
+      ...user,
+      name: profile.legal_name.trim() || user.name,
+      email: profile.email.trim().toLowerCase(),
+      phone: profile.mobile.trim(),
+      pan_number: normalizePan(profile.pan_number),
+      date_of_birth: profile.date_of_birth,
+      cibil_consent_at: cibilConsentAt
+    });
+
+    if (profile.cibil_consent && profile.pan_number && profile.date_of_birth) {
+      try {
+        const signal = await fetchCibilSignal({
+          userId: input.user_id,
+          legalName: user.name,
+          panNumber: profile.pan_number,
+          dateOfBirth: profile.date_of_birth,
+          mobile: profile.mobile,
+          consent: profile.cibil_consent
+        });
+        kyc = await upsertKycRecord({
+          ...kyc,
+          cibil_score: signal.score,
+          cibil_risk_band: signal.riskBand,
+          cibil_checked_at: new Date().toISOString(),
+          pan_last4: panLast4(profile.pan_number),
+          updated_at: new Date().toISOString()
+        });
+      } catch (error) {
+        if (!(error instanceof ApiException)) throw error;
+        kyc = await upsertKycRecord({
+          ...kyc,
+          cibil_risk_band: "unknown",
+          failure_reason: error.message,
+          updated_at: new Date().toISOString()
+        });
+      }
+    }
   }
   const pickupTs = new Date(input.pickup_at).getTime();
   const dropTs = new Date(input.drop_at).getTime();
@@ -123,9 +176,13 @@ export async function createBooking(
     vehicle_id: input.vehicle_id,
     city: "bengaluru",
     status:
-      kyc.status === "verified" ? ("payment_pending" as const) : ("pending_kyc" as const),
+      kyc.status === "verified" ? ("admin_review" as const) : ("pending_kyc" as const),
     pickup_at: input.pickup_at,
     drop_at: input.drop_at,
+    pickup_zone: input.pickup_zone ?? null,
+    pickup_address: input.pickup_address ?? null,
+    pickup_latitude: input.pickup_latitude ?? null,
+    pickup_longitude: input.pickup_longitude ?? null,
     quote,
     coupon_code: input.coupon_code,
     km_limit_bucket: input.km_limit_bucket,
@@ -133,31 +190,6 @@ export async function createBooking(
     created_at: now,
     updated_at: now
   });
-
-  let paymentOrder: Awaited<ReturnType<typeof createRazorpayOrder>> | null = null;
-
-  if (booking.status === "payment_pending") {
-    try {
-      const createdOrder = await createRazorpayOrder({
-        amountInPaise: booking.quote.total_payable * 100,
-        receipt: booking.id
-      });
-      paymentOrder = createdOrder;
-      await insertPaymentOrder({
-        id: newId("pay_order"),
-        booking_id: booking.id,
-        provider: "razorpay",
-        provider_order_id: createdOrder.order_id,
-        amount: createdOrder.amount,
-        currency: "INR",
-        status: "created",
-        created_at: now,
-        updated_at: now
-      });
-    } catch {
-      paymentOrder = null;
-    }
-  }
 
   await recordAudit({
     actorId: actor.userId,
@@ -172,9 +204,34 @@ export async function createBooking(
     }
   });
 
+  await Promise.all([
+    notifyUser({
+      userId: booking.user_id,
+      email: user.email,
+      templateKey: "booking_submitted",
+      payload: {
+        booking_id: booking.id,
+        vehicle_id: booking.vehicle_id,
+        status: booking.status,
+        total_payable: booking.quote.total_payable
+      }
+    }),
+    notifyAdmin({
+      templateKey: "admin_booking_review_requested",
+      payload: {
+        booking_id: booking.id,
+        user_id: booking.user_id,
+        vehicle_id: booking.vehicle_id,
+        status: booking.status,
+        cibil_score: kyc.cibil_score ?? null,
+        cibil_risk_band: kyc.cibil_risk_band ?? null
+      }
+    })
+  ]);
+
   return {
     ...booking,
-    payment_order: paymentOrder
+    payment_order: null
   };
 }
 
@@ -305,6 +362,7 @@ export async function cancelBooking(
 
   const cancellableStates = new Set([
     "pending_kyc",
+    "admin_review",
     "payment_pending",
     "confirmed",
     "ongoing",

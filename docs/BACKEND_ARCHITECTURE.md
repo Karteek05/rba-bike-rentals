@@ -67,7 +67,7 @@ Core principles:
 ## 3. Core Enums and Contracts
 - `Role`: `customer | partner_investor | admin`
 - `KycStatus`: `not_started | in_progress | verified | manual_review | failed | expired`
-- `BookingStatus`: `draft | pending_kyc | payment_pending | confirmed | ongoing | extension_requested | extended | completed | cancelled`
+- `BookingStatus`: `draft | pending_kyc | admin_review | payment_pending | confirmed | ongoing | extension_requested | extended | completed | cancelled`
 
 ```ts
 interface PricingQuote {
@@ -85,14 +85,15 @@ interface PricingQuote {
 
 ## 4. Booking State Machine
 Canonical lifecycle:
-`draft -> pending_kyc -> payment_pending -> confirmed -> ongoing -> extension_requested -> extended -> completed`
+`draft -> pending_kyc -> admin_review -> payment_pending -> confirmed -> ongoing -> extension_requested -> extended -> completed`
 
 Alternate terminal transition:
 `payment_pending|confirmed|ongoing|extended -> cancelled`
 
 Transition control rules:
 - `draft -> pending_kyc`: customer submits booking intent.
-- `pending_kyc -> payment_pending`: KYC verified or admin-approved manual review.
+- `pending_kyc -> admin_review`: KYC/DL review is verified or manually approved.
+- `admin_review -> payment_pending`: admin accepts the booking request and opens payment.
 - `payment_pending -> confirmed`: payment success callback + quote lock validation.
 - `confirmed -> ongoing`: pickup check-in completed.
 - `ongoing -> extension_requested`: customer triggers extension request.
@@ -122,9 +123,10 @@ For booking creation and extension, the server derives billable duration from ac
 3. Customer submits booking via `POST /api/bookings`.
 4. Booking service recomputes duration from pickup/drop timestamps and refuses mismatched duration plans.
 5. Booking overlap is checked both in application logic and at the database constraint layer.
-6. Booking enters `pending_kyc` or `payment_pending` based on KYC status.
-7. Payment service creates or reuses a single active Razorpay order for that booking.
-8. On verified success callback, status moves to `confirmed`.
+6. Booking enters `pending_kyc` or `admin_review` based on KYC status.
+7. Admin approval moves the booking to `payment_pending`.
+8. Customer payment creates or reuses a single active Razorpay order for that booking.
+9. On verified success callback, status moves to `confirmed`.
 
 ## 6.2 Extension and recalculation
 1. Customer calls `POST /api/bookings/{id}/extend`.

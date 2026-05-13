@@ -363,6 +363,7 @@
 
   .badge-pending,
   .badge-pending_kyc,
+  .badge-admin_review,
   .badge-payment_pending {
     @apply bg-amber-100 text-amber-800;
   }

@@ -1,14 +1,22 @@
 import crypto from "crypto";
 import {
   getBookingOrThrow,
+  getLatestPaymentOrderForBooking,
   getOpenPaymentOrderForBooking,
+  getUserOrThrow,
   hasProcessedPaymentEvent,
   insertPaymentEvent,
   insertPaymentOrder,
   updateBooking,
+  updatePaymentOrderById,
   updatePaymentOrderByProviderId
 } from "@/lib/data/repository";
-import { createRazorpayOrder, verifyRazorpaySignature } from "@/lib/integrations/razorpay";
+import {
+  createRazorpayOrder,
+  createRazorpayRefund,
+  verifyRazorpaySignature
+} from "@/lib/integrations/razorpay";
+import { notifyAdmin, notifyUser } from "@/lib/notifications/service";
 import type { Role } from "@/lib/types/domain";
 import { ApiException } from "@/lib/utils/errors";
 import { newId } from "@/lib/utils/ids";
@@ -152,15 +160,41 @@ export async function processRazorpayWebhook(params: {
     const orderId = payload.payload?.payment?.entity?.order_id;
     if (orderId) {
       const updatedOrder = await updatePaymentOrderByProviderId(orderId, {
+        provider_payment_id: payload.payload?.payment?.entity?.id,
         status: "paid",
         updated_at: new Date().toISOString()
       });
 
       if (updatedOrder) {
-        await updateBooking(updatedOrder.booking_id, {
+        const booking = await getBookingOrThrow(updatedOrder.booking_id);
+        const updatedBooking = await updateBooking(updatedOrder.booking_id, {
           status: "confirmed",
           updated_at: new Date().toISOString()
         });
+        const user = await getUserOrThrow(updatedBooking.user_id);
+        await Promise.all([
+          notifyUser({
+            userId: updatedBooking.user_id,
+            email: user.email,
+            templateKey: "payment_confirmed",
+            payload: {
+              booking_id: updatedBooking.id,
+              vehicle_id: updatedBooking.vehicle_id,
+              total_payable: updatedBooking.quote.total_payable,
+              provider_order_id: updatedOrder.provider_order_id
+            }
+          }),
+          notifyAdmin({
+            templateKey: "admin_payment_confirmed",
+            payload: {
+              booking_id: updatedBooking.id,
+              user_id: updatedBooking.user_id,
+              vehicle_id: updatedBooking.vehicle_id,
+              total_payable: booking.quote.total_payable,
+              provider_order_id: updatedOrder.provider_order_id
+            }
+          })
+        ]);
       }
     }
   }
@@ -176,6 +210,61 @@ export async function processRazorpayWebhook(params: {
   }
 
   return { processed: true, event: payload.event };
+}
+
+export async function refundPaymentForBooking(params: {
+  bookingId: string;
+  amount?: number;
+  reason?: string;
+  actor: { userId: string; role: Role };
+}) {
+  if (params.actor.role !== "admin") {
+    throw new ApiException(403, "forbidden", "Only admin can create refunds.");
+  }
+
+  const booking = await getBookingOrThrow(params.bookingId);
+  const paymentOrder = await getLatestPaymentOrderForBooking(params.bookingId);
+  if (!paymentOrder || paymentOrder.status !== "paid") {
+    throw new ApiException(409, "payment_not_refundable", "Booking does not have a paid payment order.");
+  }
+  if (!paymentOrder.provider_payment_id) {
+    throw new ApiException(
+      409,
+      "payment_id_missing",
+      "Razorpay payment id is missing; wait for captured webhook or reconcile before refunding."
+    );
+  }
+
+  const maxRefundAmount = paymentOrder.amount;
+  const requestedAmount = params.amount ?? maxRefundAmount;
+  if (!Number.isInteger(requestedAmount) || requestedAmount <= 0) {
+    throw new ApiException(400, "invalid_refund_amount", "Refund amount must be a positive integer.");
+  }
+  if (requestedAmount > maxRefundAmount) {
+    throw new ApiException(400, "refund_exceeds_payment", "Refund amount exceeds paid amount.");
+  }
+
+  const refund = await createRazorpayRefund({
+    paymentId: paymentOrder.provider_payment_id,
+    amountInPaise: requestedAmount,
+    notes: {
+      booking_id: booking.id,
+      reason: params.reason ?? "admin_refund"
+    }
+  });
+
+  const updatedOrder = await updatePaymentOrderById(paymentOrder.id, {
+    provider_refund_id: refund.refund_id,
+    refunded_amount: refund.amount,
+    status: "refunded",
+    updated_at: new Date().toISOString()
+  });
+
+  return {
+    booking_id: params.bookingId,
+    order: updatedOrder,
+    refund
+  };
 }
 
 export function verifyClientPaymentSignature(input: {

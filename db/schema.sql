@@ -15,7 +15,12 @@ exception when duplicate_object then null;
 end $$;
 
 do $$ begin
-  create type booking_status_type as enum ('draft', 'pending_kyc', 'payment_pending', 'confirmed', 'ongoing', 'extension_requested', 'extended', 'completed', 'cancelled');
+  create type booking_status_type as enum ('draft', 'pending_kyc', 'admin_review', 'payment_pending', 'confirmed', 'ongoing', 'extension_requested', 'extended', 'completed', 'cancelled');
+exception when duplicate_object then null;
+end $$;
+
+do $$ begin
+  alter type booking_status_type add value if not exists 'admin_review' after 'pending_kyc';
 exception when duplicate_object then null;
 end $$;
 
@@ -35,10 +40,20 @@ create table if not exists app_users (
   name text not null,
   city text not null default 'bengaluru',
   kyc_status kyc_status_type not null default 'not_started',
+  email text,
+  phone text,
+  pan_number text,
+  date_of_birth date,
+  cibil_consent_at timestamptz,
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now(),
   constraint app_users_city_check check (city = 'bengaluru')
 );
+alter table if exists app_users add column if not exists email text;
+alter table if exists app_users add column if not exists phone text;
+alter table if exists app_users add column if not exists pan_number text;
+alter table if exists app_users add column if not exists date_of_birth date;
+alter table if exists app_users add column if not exists cibil_consent_at timestamptz;
 
 create table if not exists vehicles (
   id text primary key,
@@ -68,6 +83,10 @@ create table if not exists bookings (
   status booking_status_type not null default 'draft',
   pickup_at timestamptz not null,
   drop_at timestamptz not null,
+  pickup_zone text,
+  pickup_address text,
+  pickup_latitude double precision,
+  pickup_longitude double precision,
   km_limit_bucket text not null,
   km_limit_value integer not null,
   coupon_code text,
@@ -78,10 +97,15 @@ create table if not exists bookings (
   constraint bookings_city_check check (city = 'bengaluru'),
   constraint bookings_window_check check (pickup_at < drop_at)
 );
+alter table if exists bookings add column if not exists pickup_zone text;
+alter table if exists bookings add column if not exists pickup_address text;
+alter table if exists bookings add column if not exists pickup_latitude double precision;
+alter table if exists bookings add column if not exists pickup_longitude double precision;
 
 create index if not exists idx_bookings_vehicle_window on bookings(vehicle_id, pickup_at, drop_at);
 create index if not exists idx_bookings_status on bookings(status);
 create index if not exists idx_bookings_user on bookings(user_id);
+create index if not exists idx_bookings_status_created_at on bookings(status, created_at);
 
 do $$ begin
   alter table bookings
@@ -107,10 +131,16 @@ create table if not exists kyc_records (
   aadhaar_verified boolean not null default false,
   dl_verified boolean not null default false,
   cibil_score integer,
+  cibil_risk_band text,
+  cibil_checked_at timestamptz,
+  pan_last4 text,
   needs_manual_review boolean not null default false,
   failure_reason text,
   updated_at timestamptz not null default now()
 );
+alter table if exists kyc_records add column if not exists cibil_risk_band text;
+alter table if exists kyc_records add column if not exists cibil_checked_at timestamptz;
+alter table if exists kyc_records add column if not exists pan_last4 text;
 
 create table if not exists vehicle_block_windows (
   id text primary key,
@@ -168,12 +198,18 @@ create table if not exists payment_orders (
   booking_id text not null references bookings(id),
   provider text not null default 'razorpay',
   provider_order_id text not null unique,
+  provider_payment_id text,
+  provider_refund_id text,
   amount integer not null,
+  refunded_amount integer,
   currency text not null default 'INR',
   status payment_status_type not null default 'created',
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now()
 );
+alter table if exists payment_orders add column if not exists provider_payment_id text;
+alter table if exists payment_orders add column if not exists provider_refund_id text;
+alter table if exists payment_orders add column if not exists refunded_amount integer;
 
 create unique index if not exists idx_payment_orders_booking_created
 on payment_orders(booking_id)
