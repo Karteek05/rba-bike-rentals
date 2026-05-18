@@ -16,6 +16,9 @@ const config: Config = {
           gray: "#4B5563",
           "muted-gray": "#9CA3AF",
           "chip-gray": "#F3F4F6",
+          "body-gray": "#4b4b4b",
+          "hover-gray": "#e2e2e2",
+          "hover-light": "#f3f3f3",
         },
       },
       fontFamily: {

@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import { Suspense, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
@@ -105,6 +105,7 @@ function VehicleCard({
 }) {
   const rate = vehicle[durationKey] as number;
   const durLabel = DURATIONS.find((d) => d.rateKey === durationKey)?.label ?? "Day";
+  const durUnit = DURATIONS.find((d) => d.rateKey === durationKey)?.key ?? "day";
   const icon = CATEGORY_ICONS[vehicle.category] ?? "scooter";
 
   return (
@@ -133,7 +134,7 @@ function VehicleCard({
 
           <div className="flex items-baseline gap-1 mb-3">
             <span className="text-2xl font-bold">₹{rate.toLocaleString()}</span>
-            <span className="text-uber-body-gray text-sm">/{durLabel.toLowerCase().replace("ly", "")}</span>
+            <span className="text-uber-body-gray text-sm">/{durUnit}</span>
           </div>
 
           <p className="text-xs text-uber-body-gray mb-4">Deposit: ₹{vehicle.deposit_amount.toLocaleString()}</p>
@@ -161,6 +162,7 @@ function BrowsePageContent() {
   }, [searchParams]);
 
   const currentDurLabel = DURATIONS.find((d) => d.rateKey === duration)?.label ?? "Daily";
+  const currentDurUnit = DURATIONS.find((d) => d.rateKey === duration)?.key ?? "day";
 
   const filtered = useMemo(() => {
     const normalizedQuery = query.trim().toLowerCase();
@@ -225,7 +227,7 @@ function BrowsePageContent() {
 
           <div className="flex items-center gap-3 w-full sm:w-auto">
             <label className="text-sm font-medium whitespace-nowrap">
-              Max ₹{maxPrice.toLocaleString()}/{currentDurLabel.toLowerCase().replace("ly", "")}
+              Max ₹{maxPrice.toLocaleString()}/{currentDurUnit}
             </label>
             <input
               type="range"
