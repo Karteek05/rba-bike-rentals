@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import Icon, { type IconName } from "./components/Icon";
+import { motion, AnimatePresence } from "framer-motion";
 
 type VehicleCardData = {
   id: string;
@@ -412,7 +413,19 @@ function FaqItem({ q, a }: { q: string; a: string }) {
           +
         </span>
       </button>
-      {open && <p className="text-[#4b4b4b] text-sm pb-5 leading-relaxed pr-8 max-w-2xl">{a}</p>}
+      <AnimatePresence>
+        {open && (
+          <motion.div
+            initial={{ height: 0, opacity: 0 }}
+            animate={{ height: "auto", opacity: 1 }}
+            exit={{ height: 0, opacity: 0 }}
+            transition={{ duration: 0.3, ease: "easeInOut" }}
+            className="overflow-hidden"
+          >
+            <p className="text-[#4b4b4b] text-sm pb-5 leading-relaxed pr-8 max-w-2xl">{a}</p>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }
@@ -420,7 +433,11 @@ function FaqItem({ q, a }: { q: string; a: string }) {
 function VehicleCard({ v }: { v: VehicleCardData }) {
   return (
     <Link href={`/book/${v.id}`} className="block group">
-      <div className="bg-white rounded-xl overflow-hidden shadow-[rgba(0,0,0,0.12)_0px_4px_16px_0px] hover:shadow-[rgba(0,0,0,0.20)_0px_8px_24px_0px] transition-shadow duration-300">
+      <motion.div 
+        whileHover={{ y: -8 }}
+        transition={{ type: "spring", stiffness: 300, damping: 20 }}
+        className="bg-white rounded-xl overflow-hidden shadow-[rgba(0,0,0,0.12)_0px_4px_16px_0px] hover:shadow-[rgba(0,0,0,0.20)_0px_12px_24px_0px] transition-shadow duration-300"
+      >
         <div className="relative bg-[#f5f5f5] aspect-[16/9] flex items-center justify-center">
           <span className="w-20 h-20 rounded-full border border-black/10 bg-white flex items-center justify-center text-black">
             <Icon name={v.icon} className="w-10 h-10" />
@@ -461,7 +478,7 @@ function VehicleCard({ v }: { v: VehicleCardData }) {
             <span className="text-black font-bold text-sm group-hover:underline">Book Now</span>
           </div>
         </div>
-      </div>
+      </motion.div>
     </Link>
   );
 }
@@ -501,7 +518,12 @@ export default function HomePage() {
       <section className="bg-black min-h-[calc(100vh-64px)] flex items-center py-12 sm:py-16">
         <div className="max-w-container mx-auto px-4 sm:px-6 w-full">
           <div className="grid lg:grid-cols-[1fr_420px] gap-10 lg:gap-14 items-center">
-            <div className="text-white">
+            <motion.div 
+              initial={{ opacity: 0, y: 30 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.8, ease: "easeOut" }}
+              className="text-white"
+            >
               <p className="text-[#afafaf] text-xs font-medium tracking-[0.2em] uppercase mb-6">Bengaluru Bike Rentals</p>
               <h1 className="text-4xl sm:text-5xl lg:text-7xl font-bold leading-[1.06] mb-6">Rent a Bike in Bengaluru</h1>
               <p className="text-[#afafaf] text-lg mb-10 leading-relaxed max-w-md">
@@ -534,9 +556,14 @@ export default function HomePage() {
                   </div>
                 ))}
               </div>
-            </div>
+            </motion.div>
 
-            <div className="bg-white rounded-xl p-6 shadow-[rgba(0,0,0,0.40)_0px_24px_40px]">
+            <motion.div 
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              transition={{ duration: 0.6, delay: 0.2, ease: "easeOut" }}
+              className="glass rounded-xl p-6 shadow-[rgba(0,0,0,0.40)_0px_24px_40px]"
+            >
               <h2 className="font-bold text-black text-lg mb-1">Book a Bike</h2>
               <p className="text-[#afafaf] text-xs mb-5">Select duration, dates, and pickup location</p>
 
@@ -621,7 +648,7 @@ export default function HomePage() {
               </Link>
 
               <p className="text-center text-[10px] text-[#afafaf] mt-3">Secure checkout · Policy-first pricing · Online booking updates</p>
-            </div>
+            </motion.div>
           </div>
         </div>
       </section>
