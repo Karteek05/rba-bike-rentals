@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import Icon, { type IconName } from "./components/Icon";
+import { motion, AnimatePresence } from "framer-motion";
 
 type VehicleCardData = {
   id: string;
@@ -328,19 +329,19 @@ function CalendarDatePicker({
       <button
         type="button"
         onClick={() => setOpen((state) => !state)}
-        className="w-full border border-black/20 rounded-lg px-3 py-2.5 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-black flex items-center justify-between"
+        className="w-full border border-brand-dark/20 rounded-lg px-3 py-2.5 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-brand-dark flex items-center justify-between"
       >
         <span className="text-left">{formatDateLabel(value)}</span>
         <Icon name="calendar" className="w-4 h-4 text-[#4b4b4b]" />
       </button>
 
       {open && (
-        <div className="absolute z-30 mt-2 w-[320px] max-w-[calc(100vw-4rem)] rounded-xl border border-black/15 bg-white p-3 shadow-[rgba(0,0,0,0.20)_0px_12px_24px]">
+        <div className="absolute z-30 mt-2 w-[320px] max-w-[calc(100vw-4rem)] rounded-xl border border-brand-dark/15 bg-white p-3 shadow-[rgba(0,0,0,0.20)_0px_12px_24px]">
           <div className="flex items-center justify-between mb-3">
             <button
               type="button"
               onClick={() => setViewMonth((month) => addMonths(month, -1))}
-              className="w-8 h-8 rounded-lg border border-black/20 text-black hover:bg-black hover:text-white transition-colors"
+              className="w-8 h-8 rounded-lg border border-brand-dark/20 text-brand-dark hover:bg-brand-dark hover:text-brand-light transition-colors"
               aria-label="Previous month"
             >
               ‹
@@ -351,7 +352,7 @@ function CalendarDatePicker({
             <button
               type="button"
               onClick={() => setViewMonth((month) => addMonths(month, 1))}
-              className="w-8 h-8 rounded-lg border border-black/20 text-black hover:bg-black hover:text-white transition-colors"
+              className="w-8 h-8 rounded-lg border border-brand-dark/20 text-brand-dark hover:bg-brand-dark hover:text-brand-light transition-colors"
               aria-label="Next month"
             >
               ›
@@ -382,10 +383,10 @@ function CalendarDatePicker({
                   }}
                   className={`h-9 rounded-lg text-sm transition-colors ${
                     selected
-                      ? "bg-black text-white"
+                      ? "bg-brand-dark text-brand-light"
                       : cell.inCurrentMonth
-                        ? "text-black hover:bg-black/5"
-                        : "text-[#b0b0b0] hover:bg-black/5"
+                        ? "text-brand-dark hover:bg-brand-dark/5"
+                        : "text-[#b0b0b0] hover:bg-brand-dark/5"
                   } ${disabled ? "opacity-35 cursor-not-allowed hover:bg-transparent" : ""}`}
                 >
                   {cell.date.getDate()}
@@ -402,17 +403,29 @@ function CalendarDatePicker({
 function FaqItem({ q, a }: { q: string; a: string }) {
   const [open, setOpen] = useState(false);
   return (
-    <div className="border-b border-black/10 last:border-0">
+    <div className="border-b border-brand-dark/10 last:border-0">
       <button
         className="w-full text-left py-5 flex justify-between items-center gap-4 group"
         onClick={() => setOpen(!open)}
       >
-        <span className="font-bold text-black text-sm sm:text-base group-hover:opacity-70 transition-opacity">{q}</span>
-        <span className={`text-2xl font-thin text-black/50 flex-shrink-0 transition-transform duration-200 ${open ? "rotate-45" : ""}`}>
+        <span className="font-bold text-brand-dark text-sm sm:text-base group-hover:opacity-70 transition-opacity">{q}</span>
+        <span className={`text-2xl font-thin text-brand-dark/50 flex-shrink-0 transition-transform duration-200 ${open ? "rotate-45" : ""}`}>
           +
         </span>
       </button>
-      {open && <p className="text-[#4b4b4b] text-sm pb-5 leading-relaxed pr-8 max-w-2xl">{a}</p>}
+      <AnimatePresence>
+        {open && (
+          <motion.div
+            initial={{ height: 0, opacity: 0 }}
+            animate={{ height: "auto", opacity: 1 }}
+            exit={{ height: 0, opacity: 0 }}
+            transition={{ duration: 0.3, ease: "easeInOut" }}
+            className="overflow-hidden"
+          >
+            <p className="text-[#4b4b4b] text-sm pb-5 leading-relaxed pr-8 max-w-2xl">{a}</p>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }
@@ -420,17 +433,21 @@ function FaqItem({ q, a }: { q: string; a: string }) {
 function VehicleCard({ v }: { v: VehicleCardData }) {
   return (
     <Link href={`/book/${v.id}`} className="block group">
-      <div className="bg-white rounded-xl overflow-hidden shadow-[rgba(0,0,0,0.12)_0px_4px_16px_0px] hover:shadow-[rgba(0,0,0,0.20)_0px_8px_24px_0px] transition-shadow duration-300">
+      <motion.div 
+        whileHover={{ y: -8 }}
+        transition={{ type: "spring", stiffness: 300, damping: 20 }}
+        className="bg-white rounded-xl overflow-hidden shadow-[rgba(0,0,0,0.12)_0px_4px_16px_0px] hover:shadow-[rgba(0,0,0,0.20)_0px_12px_24px_0px] transition-shadow duration-300"
+      >
         <div className="relative bg-[#f5f5f5] aspect-[16/9] flex items-center justify-center">
-          <span className="w-20 h-20 rounded-full border border-black/10 bg-white flex items-center justify-center text-black">
+          <span className="w-20 h-20 rounded-full border border-brand-dark/10 bg-white flex items-center justify-center text-brand-dark">
             <Icon name={v.icon} className="w-10 h-10" />
           </span>
           {v.badge && (
-            <div className="absolute top-3 left-3 bg-black text-white text-[11px] font-semibold px-3 py-1 rounded-pill">
+            <div className="absolute top-3 left-3 bg-brand-dark text-brand-light text-[11px] font-semibold px-3 py-1 rounded-pill">
               {v.badge}
             </div>
           )}
-          <div className="absolute top-3 right-3 bg-white text-black text-[11px] font-semibold px-3 py-1 rounded-pill shadow-[rgba(0,0,0,0.12)_0px_2px_8px] inline-flex items-center gap-1">
+          <div className="absolute top-3 right-3 bg-white text-brand-dark text-[11px] font-semibold px-3 py-1 rounded-pill shadow-[rgba(0,0,0,0.12)_0px_2px_8px] inline-flex items-center gap-1">
             <Icon name="location" className="w-3 h-3" />
             Bengaluru
           </div>
@@ -438,12 +455,12 @@ function VehicleCard({ v }: { v: VehicleCardData }) {
 
         <div className="p-6">
           <div className="flex items-center justify-between mb-2">
-            <h3 className="font-bold text-black text-lg leading-tight">{v.name}</h3>
+            <h3 className="font-bold text-brand-dark text-lg leading-tight">{v.name}</h3>
             <span className="text-xs text-[#4b4b4b] bg-[#efefef] rounded-pill px-3 py-1 font-medium">{v.category}</span>
           </div>
           <p className="text-xs text-[#afafaf] mb-5">{v.spec}</p>
 
-          <div className="grid grid-cols-3 divide-x divide-black/10 mb-5 border border-black/10 rounded-xl overflow-hidden">
+          <div className="grid grid-cols-3 divide-x divide-black/10 mb-5 border border-brand-dark/10 rounded-xl overflow-hidden">
             {[
               { label: "Daily", price: v.priceDay },
               { label: "Weekly", price: v.priceWeek },
@@ -451,17 +468,17 @@ function VehicleCard({ v }: { v: VehicleCardData }) {
             ].map((p) => (
               <div key={p.label} className="text-center py-3">
                 <div className="text-[10px] text-[#afafaf] uppercase tracking-wider mb-1">{p.label}</div>
-                <div className="font-bold text-black text-sm">₹{p.price.toLocaleString()}</div>
+                <div className="font-bold text-brand-dark text-sm">₹{p.price.toLocaleString()}</div>
               </div>
             ))}
           </div>
 
           <div className="flex items-center justify-between">
             <span className="text-xs text-[#afafaf]">Deposit ₹{v.deposit.toLocaleString()}</span>
-            <span className="text-black font-bold text-sm group-hover:underline">Book Now</span>
+            <span className="text-brand-dark font-bold text-sm group-hover:underline">Book Now</span>
           </div>
         </div>
-      </div>
+      </motion.div>
     </Link>
   );
 }
@@ -498,10 +515,15 @@ export default function HomePage() {
 
   return (
     <div className="bg-white">
-      <section className="bg-black min-h-[calc(100vh-64px)] flex items-center py-12 sm:py-16">
+      <section className="bg-brand-dark min-h-[calc(100vh-64px)] flex items-center py-12 sm:py-16">
         <div className="max-w-container mx-auto px-4 sm:px-6 w-full">
           <div className="grid lg:grid-cols-[1fr_420px] gap-10 lg:gap-14 items-center">
-            <div className="text-white">
+            <motion.div 
+              initial={{ opacity: 0, y: 30 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.8, ease: "easeOut" }}
+              className="text-brand-light"
+            >
               <p className="text-[#afafaf] text-xs font-medium tracking-[0.2em] uppercase mb-6">Bengaluru Bike Rentals</p>
               <h1 className="text-4xl sm:text-5xl lg:text-7xl font-bold leading-[1.06] mb-6">Rent a Bike in Bengaluru</h1>
               <p className="text-[#afafaf] text-lg mb-10 leading-relaxed max-w-md">
@@ -515,7 +537,7 @@ export default function HomePage() {
                   { icon: "money", text: "Transparent pricing" },
                   { icon: "clock", text: "Flexible durations" }
                 ].map((t) => (
-                  <span key={t.text} className="chip text-xs border border-black/15 text-black inline-flex items-center gap-1.5">
+                  <span key={t.text} className="chip text-xs border border-brand-dark/15 text-brand-dark inline-flex items-center gap-1.5">
                     <Icon name={t.icon as IconName} className="w-3.5 h-3.5" />
                     {t.text}
                   </span>
@@ -529,15 +551,20 @@ export default function HomePage() {
                   { n: "Booking + Extension + Cancellation", l: "Lifecycle coverage" }
                 ].map((s) => (
                   <div key={s.l}>
-                    <div className="text-sm font-bold text-white leading-tight">{s.n}</div>
+                    <div className="text-sm font-bold text-brand-light leading-tight">{s.n}</div>
                     <div className="text-[#afafaf] text-xs mt-1">{s.l}</div>
                   </div>
                 ))}
               </div>
-            </div>
+            </motion.div>
 
-            <div className="bg-white rounded-xl p-6 shadow-[rgba(0,0,0,0.40)_0px_24px_40px]">
-              <h2 className="font-bold text-black text-lg mb-1">Book a Bike</h2>
+            <motion.div 
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              transition={{ duration: 0.6, delay: 0.2, ease: "easeOut" }}
+              className="glass rounded-xl p-6 shadow-[rgba(0,0,0,0.40)_0px_24px_40px]"
+            >
+              <h2 className="font-bold text-brand-dark text-lg mb-1">Book a Bike</h2>
               <p className="text-[#afafaf] text-xs mb-5">Select duration, dates, and pickup location</p>
 
               <div className="flex gap-1 mb-5 bg-[#efefef] rounded-pill p-1">
@@ -546,7 +573,7 @@ export default function HomePage() {
                     key={d}
                     onClick={() => setDuration(d)}
                     className={`flex-1 py-2 rounded-pill text-xs font-semibold capitalize transition-colors ${
-                      duration === d ? "bg-black text-white" : "text-[#4b4b4b] hover:text-black"
+                      duration === d ? "bg-brand-dark text-brand-light" : "text-[#4b4b4b] hover:text-brand-dark"
                     }`}
                   >
                     {d}
@@ -557,7 +584,7 @@ export default function HomePage() {
               <div className="space-y-3 mb-4">
                 <div>
                   <label className="block text-[10px] font-bold uppercase tracking-wider text-[#afafaf] mb-1.5">Pickup Date & Time</label>
-                  <div className="w-full border border-black rounded-lg p-2.5 bg-white grid grid-cols-1 sm:grid-cols-[1fr_138px] gap-2">
+                  <div className="w-full border border-brand-dark rounded-lg p-2.5 bg-white grid grid-cols-1 sm:grid-cols-[1fr_138px] gap-2">
                     <CalendarDatePicker
                       value={pickupDate}
                       onChange={setPickupDate}
@@ -566,7 +593,7 @@ export default function HomePage() {
                     <select
                       value={pickupTime}
                       onChange={(e) => setPickupTime(e.target.value)}
-                      className="w-full border border-black/20 rounded-lg px-2.5 py-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-black"
+                      className="w-full border border-brand-dark/20 rounded-lg px-2.5 py-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-brand-dark"
                     >
                       {TIME_OPTIONS.map((option) => (
                         <option key={`pickup-time-${option.value}`} value={option.value}>
@@ -578,7 +605,7 @@ export default function HomePage() {
                 </div>
                 <div>
                   <label className="block text-[10px] font-bold uppercase tracking-wider text-[#afafaf] mb-1.5">Drop Date & Time</label>
-                  <div className="w-full border border-black rounded-lg p-2.5 bg-white grid grid-cols-1 sm:grid-cols-[1fr_138px] gap-2">
+                  <div className="w-full border border-brand-dark rounded-lg p-2.5 bg-white grid grid-cols-1 sm:grid-cols-[1fr_138px] gap-2">
                     <CalendarDatePicker
                       value={dropDate}
                       onChange={setDropDate}
@@ -587,7 +614,7 @@ export default function HomePage() {
                     <select
                       value={dropTime}
                       onChange={(e) => setDropTime(e.target.value)}
-                      className="w-full border border-black/20 rounded-lg px-2.5 py-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-black"
+                      className="w-full border border-brand-dark/20 rounded-lg px-2.5 py-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-brand-dark"
                     >
                       {TIME_OPTIONS.map((option) => (
                         <option key={`drop-time-${option.value}`} value={option.value}>
@@ -604,7 +631,7 @@ export default function HomePage() {
                 <select
                   value={pickupLocation}
                   onChange={(e) => setPickupLocation(e.target.value)}
-                  className="w-full border border-black rounded-lg px-3 py-2.5 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-black"
+                  className="w-full border border-brand-dark rounded-lg px-3 py-2.5 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-brand-dark"
                 >
                   {LOCATIONS.map((l) => (
                     <option key={l}>{l}</option>
@@ -621,7 +648,7 @@ export default function HomePage() {
               </Link>
 
               <p className="text-center text-[10px] text-[#afafaf] mt-3">Secure checkout · Policy-first pricing · Online booking updates</p>
-            </div>
+            </motion.div>
           </div>
         </div>
       </section>
@@ -631,7 +658,7 @@ export default function HomePage() {
           <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-6 mb-12">
             <div>
               <p className="text-[#afafaf] text-xs uppercase tracking-widest font-semibold mb-2">Our Fleet</p>
-              <h2 className="text-4xl font-bold text-black">Popular Rides in Bengaluru</h2>
+              <h2 className="text-4xl font-bold text-brand-dark">Popular Rides in Bengaluru</h2>
             </div>
             <Link href="/browse" className="btn-primary whitespace-nowrap self-start sm:self-auto">
               View All Bikes
@@ -656,11 +683,11 @@ export default function HomePage() {
           <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-6">
             {HOW_STEPS.map((step, i) => (
               <div key={step.num} className="bg-white rounded-xl p-7 shadow-[rgba(0,0,0,0.08)_0px_2px_12px] relative">
-                <div className="text-4xl font-bold text-black/8 mb-4 select-none leading-none">{step.num}</div>
-                <div className="w-10 h-10 rounded-full bg-[#efefef] flex items-center justify-center mb-3 text-black">
+                <div className="text-4xl font-bold text-brand-dark/8 mb-4 select-none leading-none">{step.num}</div>
+                <div className="w-10 h-10 rounded-full bg-[#efefef] flex items-center justify-center mb-3 text-brand-dark">
                   <Icon name={step.icon} className="w-5 h-5" />
                 </div>
-                <h3 className="font-bold text-black text-base mb-2">{step.title}</h3>
+                <h3 className="font-bold text-brand-dark text-base mb-2">{step.title}</h3>
                 <p className="text-[#4b4b4b] text-sm leading-relaxed">{step.desc}</p>
                 {i < HOW_STEPS.length - 1 && (
                   <div className="hidden lg:block absolute -right-3 top-1/2 -translate-y-1/2 text-[#afafaf] text-lg z-10">›</div>
@@ -671,11 +698,11 @@ export default function HomePage() {
         </div>
       </section>
 
-      <section className="py-16 sm:py-20 lg:py-24 bg-white border-t border-black/10">
+      <section className="py-16 sm:py-20 lg:py-24 bg-white border-t border-brand-dark/10">
         <div className="max-w-container mx-auto px-4 sm:px-6">
           <div className="mb-12">
             <p className="text-[#afafaf] text-xs uppercase tracking-widest font-semibold mb-2">Rental Plans</p>
-            <h2 className="text-4xl font-bold text-black">Choose the Right Duration</h2>
+            <h2 className="text-4xl font-bold text-brand-dark">Choose the Right Duration</h2>
             <p className="text-[#4b4b4b] text-sm mt-3 max-w-xl">
               Inspired by city rental workflows: pick the plan that matches your ride intent and budget.
             </p>
@@ -683,9 +710,9 @@ export default function HomePage() {
 
           <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-4">
             {RENTAL_PLANS.map((plan) => (
-              <div key={plan.name} className="rounded-xl border border-black/10 p-5 bg-white shadow-[rgba(0,0,0,0.06)_0px_2px_12px]">
+              <div key={plan.name} className="rounded-xl border border-brand-dark/10 p-5 bg-white shadow-[rgba(0,0,0,0.06)_0px_2px_12px]">
                 <div className="text-xs uppercase tracking-wider text-[#afafaf] mb-2">{plan.name}</div>
-                <div className="text-black font-bold text-lg mb-1">{plan.value}</div>
+                <div className="text-brand-dark font-bold text-lg mb-1">{plan.value}</div>
                 <p className="text-[#4b4b4b] text-sm">{plan.detail}</p>
               </div>
             ))}
@@ -693,15 +720,15 @@ export default function HomePage() {
         </div>
       </section>
 
-      <section className="py-16 sm:py-20 lg:py-24 bg-[#f2f3f5] border-t border-black/10">
+      <section className="py-16 sm:py-20 lg:py-24 bg-[#f2f3f5] border-t border-brand-dark/10">
         <div className="max-w-container mx-auto px-4 sm:px-6">
           <div className="text-center mb-14">
             <p className="text-[#526074] text-xs uppercase tracking-widest font-semibold mb-2">Services</p>
-            <h2 className="text-3xl sm:text-4xl font-bold text-black">Services We Offer</h2>
-            <div className="w-20 h-0.5 bg-black/20 mx-auto mt-3" />
+            <h2 className="text-3xl sm:text-4xl font-bold text-brand-dark">Services We Offer</h2>
+            <div className="w-20 h-0.5 bg-brand-dark/20 mx-auto mt-3" />
           </div>
 
-          <div className="relative rounded-2xl border border-black/10 bg-white overflow-hidden">
+          <div className="relative rounded-2xl border border-brand-dark/10 bg-white overflow-hidden">
             <div className="grid xl:grid-cols-[1fr_520px_1fr]">
               <div className="p-8 md:p-10">
                 <p className="text-xs uppercase tracking-wider text-[#526074] mb-2">{SERVICES_OFFER.left.eyebrow}</p>
@@ -709,42 +736,42 @@ export default function HomePage() {
                 <div className="space-y-5 mb-10">
                   {SERVICES_OFFER.left.points.map((point) => (
                     <div key={point.label}>
-                      <div className="text-lg font-bold text-black">{point.label}</div>
+                      <div className="text-lg font-bold text-brand-dark">{point.label}</div>
                       <div className="text-[#4b4b4b]">{point.text}</div>
                     </div>
                   ))}
                 </div>
                 <Link
                   href="/browse"
-                  className="inline-flex items-center justify-center rounded-xl bg-black hover:bg-zinc-800 text-white font-bold px-8 py-3 transition-colors"
+                  className="inline-flex items-center justify-center rounded-xl bg-brand-yellow hover:bg-brand-yellow-hover text-brand-dark font-bold px-8 py-3 transition-colors"
                 >
                   {SERVICES_OFFER.left.cta}
                 </Link>
               </div>
 
-              <div className="relative min-h-[360px] xl:min-h-full bg-gradient-to-b from-[#eef1f4] to-[#e5eaf0] border-y xl:border-y-0 xl:border-x border-black/10">
+              <div className="relative min-h-[360px] xl:min-h-full bg-gradient-to-b from-[#eef1f4] to-[#e5eaf0] border-y xl:border-y-0 xl:border-x border-brand-dark/10">
                 <div className="absolute inset-0 flex items-center justify-center">
-                  <div className="absolute w-72 h-72 rounded-full bg-black/5 -translate-x-16" />
-                  <div className="absolute w-72 h-72 rounded-full bg-black/10 translate-x-16" />
+                  <div className="absolute w-72 h-72 rounded-full bg-brand-dark/5 -translate-x-16" />
+                  <div className="absolute w-72 h-72 rounded-full bg-brand-dark/10 translate-x-16" />
                 </div>
                 <div className="absolute inset-0 flex items-center justify-center gap-3 sm:gap-5 px-4">
-                  <div className="w-[210px] sm:w-[230px] rounded-2xl bg-white border border-black/10 shadow-[rgba(0,0,0,0.16)_0px_12px_26px] overflow-hidden -rotate-2">
+                  <div className="w-[210px] sm:w-[230px] rounded-2xl bg-white border border-brand-dark/10 shadow-[rgba(0,0,0,0.16)_0px_12px_26px] overflow-hidden -rotate-2">
                     <img
                       src="https://images.pexels.com/photos/1629180/pexels-photo-1629180.jpeg?auto=compress&cs=tinysrgb&w=900"
                       alt="Motorcycle available for daily rentals"
                       className="w-full aspect-[4/3] object-cover"
                       loading="lazy"
                     />
-                    <div className="px-3 py-2 text-xs font-semibold text-black bg-white">Daily Rental Bikes</div>
+                    <div className="px-3 py-2 text-xs font-semibold text-brand-dark bg-white">Daily Rental Bikes</div>
                   </div>
-                  <div className="w-[210px] sm:w-[230px] rounded-2xl bg-white border border-black/10 shadow-[rgba(0,0,0,0.16)_0px_12px_26px] overflow-hidden rotate-2">
+                  <div className="w-[210px] sm:w-[230px] rounded-2xl bg-white border border-brand-dark/10 shadow-[rgba(0,0,0,0.16)_0px_12px_26px] overflow-hidden rotate-2">
                     <img
                       src="https://images.pexels.com/photos/8442674/pexels-photo-8442674.jpeg?auto=compress&cs=tinysrgb&w=900"
                       alt="Scooter available for monthly subscription"
                       className="w-full aspect-[4/3] object-cover"
                       loading="lazy"
                     />
-                    <div className="px-3 py-2 text-xs font-semibold text-black bg-white">Monthly Subscription Scooters</div>
+                    <div className="px-3 py-2 text-xs font-semibold text-brand-dark bg-white">Monthly Subscription Scooters</div>
                   </div>
                 </div>
               </div>
@@ -755,7 +782,7 @@ export default function HomePage() {
                 <div className="space-y-5 mb-10">
                   {SERVICES_OFFER.right.points.map((point) => (
                     <div key={point.label} className="text-left xl:text-right">
-                      <div className="text-lg font-bold text-black">{point.label}</div>
+                      <div className="text-lg font-bold text-brand-dark">{point.label}</div>
                       <div className="text-[#4b4b4b]">{point.text}</div>
                     </div>
                   ))}
@@ -763,7 +790,7 @@ export default function HomePage() {
                 <div className="text-left xl:text-right">
                   <Link
                     href="/browse"
-                    className="inline-flex items-center justify-center rounded-xl border border-black text-black hover:bg-black hover:text-white font-bold px-8 py-3 transition-colors"
+                    className="inline-flex items-center justify-center rounded-xl border border-brand-dark text-brand-dark hover:bg-brand-dark hover:text-brand-light font-bold px-8 py-3 transition-colors"
                   >
                     {SERVICES_OFFER.right.cta}
                   </Link>
@@ -774,7 +801,7 @@ export default function HomePage() {
         </div>
       </section>
 
-      <section className="py-16 sm:py-20 lg:py-24 bg-black text-white">
+      <section className="py-16 sm:py-20 lg:py-24 bg-brand-dark text-brand-light">
         <div className="max-w-container mx-auto px-4 sm:px-6">
           <div className="grid lg:grid-cols-2 gap-16 items-start">
             <div>
@@ -787,11 +814,11 @@ export default function HomePage() {
               <div className="flex flex-col gap-5">
                 {TRUST_FACTS.map((f) => (
                   <div key={f.title} className="flex gap-4 items-start">
-                    <div className="w-10 h-10 bg-white/10 rounded-lg flex items-center justify-center text-white flex-shrink-0">
+                    <div className="w-10 h-10 bg-brand-light/10 rounded-lg flex items-center justify-center text-brand-light flex-shrink-0">
                       <Icon name={f.icon} className="w-5 h-5" />
                     </div>
                     <div>
-                      <div className="font-bold text-white text-sm">{f.title}</div>
+                      <div className="font-bold text-brand-light text-sm">{f.title}</div>
                       <div className="text-[#757575] text-sm mt-0.5 leading-relaxed">{f.detail}</div>
                     </div>
                   </div>
@@ -799,23 +826,23 @@ export default function HomePage() {
               </div>
             </div>
 
-            <div className="bg-white text-black rounded-xl p-6 border border-black/10">
-              <h3 className="font-bold text-black text-xl mb-4">Policy Snapshot</h3>
+            <div className="bg-white text-brand-dark rounded-xl p-6 border border-brand-dark/10">
+              <h3 className="font-bold text-brand-dark text-xl mb-4">Policy Snapshot</h3>
               <div className="space-y-3 text-sm text-[#4b4b4b]">
                 <div className="flex gap-3 items-start">
-                  <Icon name="checkCircle" className="w-4 h-4 mt-0.5 text-black" />
+                  <Icon name="checkCircle" className="w-4 h-4 mt-0.5 text-brand-dark" />
                   <span>KYC verification required before payment confirmation.</span>
                 </div>
                 <div className="flex gap-3 items-start">
-                  <Icon name="checkCircle" className="w-4 h-4 mt-0.5 text-black" />
+                  <Icon name="checkCircle" className="w-4 h-4 mt-0.5 text-brand-dark" />
                   <span>Pricing includes fare, tax, and deposit in the quote response.</span>
                 </div>
                 <div className="flex gap-3 items-start">
-                  <Icon name="checkCircle" className="w-4 h-4 mt-0.5 text-black" />
+                  <Icon name="checkCircle" className="w-4 h-4 mt-0.5 text-brand-dark" />
                   <span>Booking lifecycle supports extension, cancellation, and damage reporting.</span>
                 </div>
                 <div className="flex gap-3 items-start">
-                  <Icon name="checkCircle" className="w-4 h-4 mt-0.5 text-black" />
+                  <Icon name="checkCircle" className="w-4 h-4 mt-0.5 text-brand-dark" />
                   <span>Partner and admin dashboards support fleet and KYC operations.</span>
                 </div>
               </div>
@@ -836,13 +863,13 @@ export default function HomePage() {
         <div className="max-w-container mx-auto px-4 sm:px-6">
           <div className="mb-12">
             <p className="text-[#afafaf] text-xs uppercase tracking-widest font-semibold mb-2">Coverage</p>
-            <h2 className="text-4xl font-bold text-black">Pickup Hubs Across Bengaluru</h2>
+            <h2 className="text-4xl font-bold text-brand-dark">Pickup Hubs Across Bengaluru</h2>
             <p className="text-[#4b4b4b] text-sm mt-3 max-w-md">Choose a convenient pickup zone during booking and confirm availability in flow.</p>
           </div>
 
           <div className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-6 gap-3">
             {LOCATIONS.map((loc) => (
-              <div key={loc} className="chip text-center text-xs hover:bg-black hover:text-white transition-colors inline-flex items-center justify-center gap-1.5">
+              <div key={loc} className="chip text-center text-xs hover:bg-brand-dark hover:text-brand-light transition-colors inline-flex items-center justify-center gap-1.5">
                 <Icon name="location" className="w-3.5 h-3.5" />
                 {loc}
               </div>
@@ -855,10 +882,10 @@ export default function HomePage() {
         <div className="max-w-3xl mx-auto px-4 sm:px-6">
           <div className="text-center mb-12">
             <p className="text-[#afafaf] text-xs uppercase tracking-widest font-semibold mb-2">FAQ</p>
-            <h2 className="text-4xl font-bold text-black">Common Questions</h2>
+            <h2 className="text-4xl font-bold text-brand-dark">Common Questions</h2>
           </div>
 
-          <div className="bg-white rounded-xl border border-black/8 shadow-[rgba(0,0,0,0.06)_0px_2px_16px] px-4 sm:px-8 py-2">
+          <div className="bg-white rounded-xl border border-brand-dark/8 shadow-[rgba(0,0,0,0.06)_0px_2px_16px] px-4 sm:px-8 py-2">
             {FAQS.map((f) => (
               <FaqItem key={f.q} q={f.q} a={f.a} />
             ))}
@@ -866,7 +893,7 @@ export default function HomePage() {
         </div>
       </section>
 
-      <section className="py-16 sm:py-20 lg:py-24 bg-black text-white">
+      <section className="py-16 sm:py-20 lg:py-24 bg-brand-dark text-brand-light">
         <div className="max-w-container mx-auto px-4 sm:px-6 text-center">
           <p className="text-[#afafaf] text-xs uppercase tracking-widest font-semibold mb-4">Get Started</p>
           <h2 className="text-3xl sm:text-4xl lg:text-5xl font-bold mb-5">Ready to Ride?</h2>
@@ -879,7 +906,7 @@ export default function HomePage() {
             </Link>
             <Link
               href="/kyc"
-              className="inline-flex items-center justify-center rounded-pill border border-white bg-transparent text-white py-3.5 px-10 text-base font-medium transition-colors hover:bg-white hover:text-black"
+              className="inline-flex items-center justify-center rounded-pill border border-white bg-transparent text-brand-light py-3.5 px-10 text-base font-medium transition-colors hover:bg-white hover:text-brand-dark"
             >
               Start KYC
             </Link>

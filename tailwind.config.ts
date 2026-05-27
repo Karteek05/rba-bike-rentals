@@ -7,13 +7,17 @@ const config: Config = {
   theme: {
     extend: {
       colors: {
-        uber: {
-          black:  "#000000",
-          white:  "#ffffff",
-          "body-gray":   "#4b4b4b",
-          "muted-gray":  "#afafaf",
-          "chip-gray":   "#efefef",
-          "hover-gray":  "#e2e2e2",
+        brand: {
+          yellow: "#FFCC00",
+          "yellow-hover": "#E6B800",
+          dark: "#111827",
+          "dark-hover": "#1F2937",
+          light: "#F9FAFB",
+          gray: "#4B5563",
+          "muted-gray": "#9CA3AF",
+          "chip-gray": "#F3F4F6",
+          "body-gray": "#4b4b4b",
+          "hover-gray": "#e2e2e2",
           "hover-light": "#f3f3f3",
         },
       },
