@@ -30,24 +30,24 @@ const FOOTER_LINKS = {
 
 export default function Footer() {
   return (
-    <footer className="bg-black text-white">
+    <footer className="bg-[color:var(--color-ink)] text-white">
       <div className="max-w-container mx-auto px-4 sm:px-6 pt-16 pb-8">
         <div className="grid grid-cols-2 md:grid-cols-5 gap-10 pb-12 border-b border-white/10">
           <div className="col-span-2 md:col-span-1">
-            <div className="text-2xl font-bold mb-4">RBA</div>
-            <p className="text-[#757575] text-xs leading-relaxed mb-5">
+            <div className="text-2xl font-black mb-4">RBA<span className="text-[color:var(--color-accent)]">.</span></div>
+            <p className="text-white/60 text-sm leading-relaxed mb-5">
               Bengaluru bike rentals with transparent pricing, DigiLocker KYC, and flexible duration plans.
             </p>
             <div className="flex flex-col gap-2 text-xs">
-              <a href="#" className="text-[#afafaf] hover:text-white transition-colors inline-flex items-center gap-2">
+              <a href="#" className="nav-focus text-white/65 hover:text-white transition-colors inline-flex items-center gap-2">
                 <Icon name="support" className="w-3.5 h-3.5" />
                 Help Centre
               </a>
-              <a href="/kyc" className="text-[#afafaf] hover:text-white transition-colors inline-flex items-center gap-2">
+              <a href="/kyc" className="nav-focus text-white/65 hover:text-white transition-colors inline-flex items-center gap-2">
                 <Icon name="mail" className="w-3.5 h-3.5" />
                 KYC Support Flow
               </a>
-              <a href="/my-bookings" className="text-[#afafaf] hover:text-white transition-colors inline-flex items-center gap-2">
+              <a href="/my-bookings" className="nav-focus text-white/65 hover:text-white transition-colors inline-flex items-center gap-2">
                 <Icon name="chat" className="w-3.5 h-3.5" />
                 Booking Support
               </a>
@@ -60,7 +60,7 @@ export default function Footer() {
               <ul className="space-y-2.5">
                 {items.map((item) => (
                   <li key={item.label}>
-                    <Link href={item.href} className="text-[#757575] hover:text-white text-xs transition-colors">
+                    <Link href={item.href} className="nav-focus text-white/55 hover:text-white text-xs transition-colors">
                       {item.label}
                     </Link>
                   </li>
@@ -71,10 +71,10 @@ export default function Footer() {
         </div>
 
         <div className="pt-8 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-          <p className="text-[#757575] text-xs">© RBA Bike Rentals 2026 · Bengaluru, India</p>
+          <p className="text-white/45 text-xs">(c) RBA Bike Rentals 2026 · Bengaluru, India</p>
           <div className="flex gap-5">
             {["Privacy", "Terms", "Cookies"].map((l) => (
-              <Link key={l} href="#" className="text-[#757575] hover:text-white text-xs transition-colors">
+              <Link key={l} href="#" className="nav-focus text-white/45 hover:text-white text-xs transition-colors">
                 {l}
               </Link>
             ))}

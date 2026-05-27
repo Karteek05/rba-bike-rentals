@@ -15,7 +15,7 @@ export default function RootLayout({
 }: Readonly<{ children: React.ReactNode }>) {
   return (
     <html lang="en">
-      <body className="bg-white text-black antialiased">
+      <body className="bg-[color:var(--color-paper)] text-[color:var(--color-ink)] antialiased">
         <Navbar />
         <main>{children}</main>
         <Footer />

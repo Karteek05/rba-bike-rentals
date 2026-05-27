@@ -1,0 +1,468 @@
+- generic [active] [ref=e1]:
+  - banner [ref=e2]:
+    - generic [ref=e3]:
+      - link "RBA." [ref=e5] [cursor=pointer]:
+        - /url: /
+      - button "Toggle navigation" [ref=e7] [cursor=pointer]:
+        - img [ref=e8]
+  - main [ref=e9]:
+    - generic [ref=e10]:
+      - generic [ref=e13]:
+        - generic [ref=e14]:
+          - paragraph [ref=e15]: Bengaluru bike rentals
+          - heading "City rides, booked cleanly." [level=1] [ref=e16]
+          - paragraph [ref=e17]: Scooters, bikes, and EVs with KYC-first booking, clear deposits, and rental windows that fit real Bengaluru days.
+          - generic [ref=e18]:
+            - generic [ref=e19]:
+              - img [ref=e20]
+              - text: DigiLocker KYC
+            - generic [ref=e24]:
+              - img [ref=e25]
+              - text: Razorpay checkout
+            - generic [ref=e28]:
+              - img [ref=e29]
+              - text: Transparent pricing
+            - generic [ref=e32]:
+              - img [ref=e33]
+              - text: Flexible durations
+          - generic [ref=e36]:
+            - generic [ref=e37]:
+              - generic [ref=e38]: Hourly to monthly
+              - generic [ref=e39]: Rental plans
+            - generic [ref=e40]:
+              - generic [ref=e41]: Digital KYC
+              - generic [ref=e42]: Before payment
+            - generic [ref=e43]:
+              - generic [ref=e44]: Extend or cancel
+              - generic [ref=e45]: Online workflows
+          - generic [ref=e46]:
+            - img "Motorcycle ready for city rental" [ref=e47]
+            - generic [ref=e48]:
+              - paragraph [ref=e49]: "Built for practical city use: office commutes, weekend errands, short stays, and partner-managed fleet ops."
+              - link "Browse Fleet" [ref=e50] [cursor=pointer]:
+                - /url: /browse
+        - generic [ref=e51]:
+          - heading "Find a bike" [level=2] [ref=e52]
+          - paragraph [ref=e53]: Select duration, dates, and pickup location.
+          - generic [ref=e54]:
+            - button "hourly" [ref=e55] [cursor=pointer]
+            - button "daily" [ref=e56] [cursor=pointer]
+            - button "weekly" [ref=e57] [cursor=pointer]
+            - button "monthly" [ref=e58] [cursor=pointer]
+          - generic [ref=e59]:
+            - generic [ref=e60]:
+              - generic [ref=e61]: Pickup date and time
+              - generic [ref=e62]:
+                - button "Wed, 27 May, 2026" [ref=e64] [cursor=pointer]:
+                  - generic [ref=e65]: Wed, 27 May, 2026
+                  - img [ref=e66]
+                - combobox [ref=e68]:
+                  - option "6:00 am"
+                  - option "6:30 am"
+                  - option "7:00 am"
+                  - option "7:30 am"
+                  - option "8:00 am"
+                  - option "8:30 am"
+                  - option "9:00 am"
+                  - option "9:30 am"
+                  - option "10:00 am"
+                  - option "10:30 am"
+                  - option "11:00 am"
+                  - option "11:30 am"
+                  - option "12:00 pm"
+                  - option "12:30 pm"
+                  - option "1:00 pm"
+                  - option "1:30 pm"
+                  - option "2:00 pm"
+                  - option "2:30 pm"
+                  - option "3:00 pm"
+                  - option "3:30 pm"
+                  - option "4:00 pm"
+                  - option "4:30 pm"
+                  - option "5:00 pm" [selected]
+                  - option "5:30 pm"
+                  - option "6:00 pm"
+                  - option "6:30 pm"
+                  - option "7:00 pm"
+                  - option "7:30 pm"
+                  - option "8:00 pm"
+                  - option "8:30 pm"
+                  - option "9:00 pm"
+                  - option "9:30 pm"
+                  - option "10:00 pm"
+                  - option "10:30 pm"
+                  - option "11:00 pm"
+                  - option "11:30 pm"
+            - generic [ref=e69]:
+              - generic [ref=e70]: Drop date and time
+              - generic [ref=e71]:
+                - button "Thu, 28 May, 2026" [ref=e73] [cursor=pointer]:
+                  - generic [ref=e74]: Thu, 28 May, 2026
+                  - img [ref=e75]
+                - combobox [ref=e77]:
+                  - option "6:00 am"
+                  - option "6:30 am"
+                  - option "7:00 am"
+                  - option "7:30 am"
+                  - option "8:00 am"
+                  - option "8:30 am"
+                  - option "9:00 am"
+                  - option "9:30 am"
+                  - option "10:00 am"
+                  - option "10:30 am"
+                  - option "11:00 am"
+                  - option "11:30 am"
+                  - option "12:00 pm"
+                  - option "12:30 pm"
+                  - option "1:00 pm"
+                  - option "1:30 pm"
+                  - option "2:00 pm"
+                  - option "2:30 pm"
+                  - option "3:00 pm"
+                  - option "3:30 pm"
+                  - option "4:00 pm"
+                  - option "4:30 pm"
+                  - option "5:00 pm" [selected]
+                  - option "5:30 pm"
+                  - option "6:00 pm"
+                  - option "6:30 pm"
+                  - option "7:00 pm"
+                  - option "7:30 pm"
+                  - option "8:00 pm"
+                  - option "8:30 pm"
+                  - option "9:00 pm"
+                  - option "9:30 pm"
+                  - option "10:00 pm"
+                  - option "10:30 pm"
+                  - option "11:00 pm"
+                  - option "11:30 pm"
+          - generic [ref=e78]:
+            - generic [ref=e79]: Pickup location
+            - combobox [ref=e80]:
+              - option "Indiranagar" [selected]
+              - option "Koramangala"
+              - option "Whitefield"
+              - option "Electronic City"
+              - option "Marathahalli"
+              - option "HSR Layout"
+              - option "Jayanagar"
+              - option "BTM Layout"
+              - option "Hebbal"
+              - option "Yelahanka"
+              - option "Bellandur"
+              - option "JP Nagar"
+          - paragraph [ref=e81]: Wed, 27 May 17:00 to Thu, 28 May 17:00
+          - link "Search Available Bikes" [ref=e82] [cursor=pointer]:
+            - /url: /browse?duration=daily&pickup_at=2026-05-27T11%3A30%3A00.000Z&drop_at=2026-05-28T11%3A30%3A00.000Z&pickup_location=Indiranagar
+          - paragraph [ref=e83]: Secure checkout - policy-first pricing - online booking updates
+      - generic [ref=e85]:
+        - generic [ref=e86]:
+          - generic [ref=e87]:
+            - paragraph [ref=e88]: Fleet preview
+            - heading "Popular rides in Bengaluru" [level=2] [ref=e89]
+          - link "View All Bikes" [ref=e90] [cursor=pointer]:
+            - /url: /browse
+        - generic [ref=e91]:
+          - link "Honda Activa 6G rental option City commute Bengaluru Honda Activa 6G Scooter 109 cc, BS6 Daily Rs. 750 Weekly Rs. 4,200 Monthly Rs. 15,000 Deposit Rs. 2,000 Book Now" [ref=e92] [cursor=pointer]:
+            - /url: /book/veh_001
+            - generic [ref=e93]:
+              - generic [ref=e94]:
+                - img "Honda Activa 6G rental option" [ref=e95]
+                - img [ref=e97]
+                - generic [ref=e102]: City commute
+                - generic [ref=e103]:
+                  - img [ref=e104]
+                  - text: Bengaluru
+              - generic [ref=e107]:
+                - generic [ref=e108]:
+                  - heading "Honda Activa 6G" [level=3] [ref=e109]
+                  - generic [ref=e110]: Scooter
+                - paragraph [ref=e111]: 109 cc, BS6
+                - generic [ref=e112]:
+                  - generic [ref=e113]:
+                    - generic [ref=e114]: Daily
+                    - generic [ref=e115]: Rs. 750
+                  - generic [ref=e116]:
+                    - generic [ref=e117]: Weekly
+                    - generic [ref=e118]: Rs. 4,200
+                  - generic [ref=e119]:
+                    - generic [ref=e120]: Monthly
+                    - generic [ref=e121]: Rs. 15,000
+                - generic [ref=e122]:
+                  - generic [ref=e123]: Deposit Rs. 2,000
+                  - generic [ref=e124]: Book Now
+          - link "Yamaha MT-15 rental option Bengaluru Yamaha MT-15 Bike 155 cc, liquid cooled Daily Rs. 1,200 Weekly Rs. 7,000 Monthly Rs. 25,000 Deposit Rs. 3,000 Book Now" [ref=e125] [cursor=pointer]:
+            - /url: /book/veh_002
+            - generic [ref=e126]:
+              - generic [ref=e127]:
+                - img "Yamaha MT-15 rental option" [ref=e128]
+                - img [ref=e130]
+                - generic [ref=e135]:
+                  - img [ref=e136]
+                  - text: Bengaluru
+              - generic [ref=e139]:
+                - generic [ref=e140]:
+                  - heading "Yamaha MT-15" [level=3] [ref=e141]
+                  - generic [ref=e142]: Bike
+                - paragraph [ref=e143]: 155 cc, liquid cooled
+                - generic [ref=e144]:
+                  - generic [ref=e145]:
+                    - generic [ref=e146]: Daily
+                    - generic [ref=e147]: Rs. 1,200
+                  - generic [ref=e148]:
+                    - generic [ref=e149]: Weekly
+                    - generic [ref=e150]: Rs. 7,000
+                  - generic [ref=e151]:
+                    - generic [ref=e152]: Monthly
+                    - generic [ref=e153]: Rs. 25,000
+                - generic [ref=e154]:
+                  - generic [ref=e155]: Deposit Rs. 3,000
+                  - generic [ref=e156]: Book Now
+          - link "TVS iQube rental option Electric Bengaluru TVS iQube EV Electric, 75 km range Daily Rs. 900 Weekly Rs. 5,000 Monthly Rs. 17,000 Deposit Rs. 2,500 Book Now" [ref=e157] [cursor=pointer]:
+            - /url: /book/veh_003
+            - generic [ref=e158]:
+              - generic [ref=e159]:
+                - img "TVS iQube rental option" [ref=e160]
+                - img [ref=e162]
+                - generic [ref=e164]: Electric
+                - generic [ref=e165]:
+                  - img [ref=e166]
+                  - text: Bengaluru
+              - generic [ref=e169]:
+                - generic [ref=e170]:
+                  - heading "TVS iQube" [level=3] [ref=e171]
+                  - generic [ref=e172]: EV
+                - paragraph [ref=e173]: Electric, 75 km range
+                - generic [ref=e174]:
+                  - generic [ref=e175]:
+                    - generic [ref=e176]: Daily
+                    - generic [ref=e177]: Rs. 900
+                  - generic [ref=e178]:
+                    - generic [ref=e179]: Weekly
+                    - generic [ref=e180]: Rs. 5,000
+                  - generic [ref=e181]:
+                    - generic [ref=e182]: Monthly
+                    - generic [ref=e183]: Rs. 17,000
+                - generic [ref=e184]:
+                  - generic [ref=e185]: Deposit Rs. 2,500
+                  - generic [ref=e186]: Book Now
+      - generic [ref=e188]:
+        - generic [ref=e189]:
+          - heading "A rental flow that stays out of the way." [level=2] [ref=e190]
+          - paragraph [ref=e191]: The public experience is short and practical, while the platform keeps KYC, payment confirmation, and booking state changes explicit behind the scenes.
+        - generic [ref=e192]:
+          - generic [ref=e193]:
+            - img [ref=e195]
+            - heading "Set the ride window" [level=3] [ref=e198]
+            - paragraph [ref=e199]: Choose a Bengaluru pickup hub, date, time, and rental duration.
+          - generic [ref=e200]:
+            - img [ref=e202]
+            - heading "Pick the right vehicle" [level=3] [ref=e207]
+            - paragraph [ref=e208]: Compare scooters, bikes, and EVs with deposits and tariffs upfront.
+          - generic [ref=e209]:
+            - img [ref=e211]
+            - heading "Verify once" [level=3] [ref=e215]
+            - paragraph [ref=e216]: Complete DigiLocker-based KYC before payment confirmation.
+          - generic [ref=e217]:
+            - img [ref=e219]
+            - heading "Pay and manage" [level=3] [ref=e222]
+            - paragraph [ref=e223]: Use checkout, extensions, cancellations, and booking updates online.
+      - generic [ref=e225]:
+        - generic [ref=e226]:
+          - paragraph [ref=e227]: Rental plans
+          - heading "Choose by duration, not by guesswork." [level=2] [ref=e228]
+        - generic [ref=e229]:
+          - generic [ref=e230]:
+            - generic [ref=e231]: Hourly
+            - generic [ref=e232]: From Rs. 120/hour
+            - paragraph [ref=e233]: Short errands and quick meetings
+          - generic [ref=e234]:
+            - generic [ref=e235]: Daily
+            - generic [ref=e236]: From Rs. 750/day
+            - paragraph [ref=e237]: Office commute and single-day plans
+          - generic [ref=e238]:
+            - generic [ref=e239]: Weekly
+            - generic [ref=e240]: From Rs. 4,200/week
+            - paragraph [ref=e241]: Busy city weeks and work assignments
+          - generic [ref=e242]:
+            - generic [ref=e243]: Monthly
+            - generic [ref=e244]: From Rs. 15,000/month
+            - paragraph [ref=e245]: Long stays and repeat local travel
+      - generic [ref=e248]:
+        - generic [ref=e249]:
+          - paragraph [ref=e250]: Trust signals
+          - heading "Built for policy-first rentals." [level=2] [ref=e251]
+          - paragraph [ref=e252]: The product is not just a glossy storefront. It accounts for quotes, KYC, payments, booking changes, fleet operations, and admin review.
+        - generic [ref=e253]:
+          - generic [ref=e254]:
+            - img [ref=e256]
+            - heading "Quote before commitment" [level=3] [ref=e259]
+            - paragraph [ref=e260]: Fare, add-ons, tax, coupon impact, and deposit are shown before booking.
+          - generic [ref=e261]:
+            - img [ref=e263]
+            - heading "Payment confirmation flow" [level=3] [ref=e266]
+            - paragraph [ref=e267]: Razorpay order and webhook confirmation are wired into the booking lifecycle.
+          - generic [ref=e268]:
+            - img [ref=e270]
+            - heading "KYC-first access" [level=3] [ref=e274]
+            - paragraph [ref=e275]: DigiLocker start, callback, and status polling are supported in the app.
+          - generic [ref=e276]:
+            - img [ref=e278]
+            - heading "Role-based operations" [level=3] [ref=e285]
+            - paragraph [ref=e286]: Customer, partner, and admin surfaces support day-to-day rental operations.
+      - generic [ref=e288]:
+        - generic [ref=e289]:
+          - heading "Pickup hubs across Bengaluru" [level=2] [ref=e290]
+          - paragraph [ref=e291]: Choose a convenient pickup zone during booking and confirm availability in the flow.
+        - generic [ref=e292]:
+          - generic [ref=e293] [cursor=pointer]:
+            - img [ref=e294]
+            - text: Indiranagar
+          - generic [ref=e297] [cursor=pointer]:
+            - img [ref=e298]
+            - text: Koramangala
+          - generic [ref=e301] [cursor=pointer]:
+            - img [ref=e302]
+            - text: Whitefield
+          - generic [ref=e305] [cursor=pointer]:
+            - img [ref=e306]
+            - text: Electronic City
+          - generic [ref=e309] [cursor=pointer]:
+            - img [ref=e310]
+            - text: Marathahalli
+          - generic [ref=e313] [cursor=pointer]:
+            - img [ref=e314]
+            - text: HSR Layout
+          - generic [ref=e317] [cursor=pointer]:
+            - img [ref=e318]
+            - text: Jayanagar
+          - generic [ref=e321] [cursor=pointer]:
+            - img [ref=e322]
+            - text: BTM Layout
+          - generic [ref=e325] [cursor=pointer]:
+            - img [ref=e326]
+            - text: Hebbal
+          - generic [ref=e329] [cursor=pointer]:
+            - img [ref=e330]
+            - text: Yelahanka
+          - generic [ref=e333] [cursor=pointer]:
+            - img [ref=e334]
+            - text: Bellandur
+          - generic [ref=e337] [cursor=pointer]:
+            - img [ref=e338]
+            - text: JP Nagar
+      - generic [ref=e342]:
+        - generic [ref=e343]:
+          - paragraph [ref=e344]: FAQ
+          - heading "Common questions" [level=2] [ref=e345]
+        - generic [ref=e346]:
+          - button "What documents are required for booking? +" [ref=e348] [cursor=pointer]:
+            - generic [ref=e349]: What documents are required for booking?
+            - generic [ref=e350]: +
+          - button "How is the deposit handled? +" [ref=e352] [cursor=pointer]:
+            - generic [ref=e353]: How is the deposit handled?
+            - generic [ref=e354]: +
+          - button "Can I extend a live booking? +" [ref=e356] [cursor=pointer]:
+            - generic [ref=e357]: Can I extend a live booking?
+            - generic [ref=e358]: +
+          - button "How is pricing shown? +" [ref=e360] [cursor=pointer]:
+            - generic [ref=e361]: How is pricing shown?
+            - generic [ref=e362]: +
+      - generic [ref=e364]:
+        - heading "Ready to book the ride?" [level=2] [ref=e365]
+        - paragraph [ref=e366]: Complete KYC once and book available bikes with transparent pricing.
+        - generic [ref=e367]:
+          - link "Browse Bikes" [ref=e368] [cursor=pointer]:
+            - /url: /browse
+          - link "Start KYC" [ref=e369] [cursor=pointer]:
+            - /url: /kyc
+  - contentinfo [ref=e370]:
+    - generic [ref=e371]:
+      - generic [ref=e372]:
+        - generic [ref=e373]:
+          - generic [ref=e374]: RBA.
+          - paragraph [ref=e375]: Bengaluru bike rentals with transparent pricing, DigiLocker KYC, and flexible duration plans.
+          - generic [ref=e376]:
+            - link "Help Centre" [ref=e377] [cursor=pointer]:
+              - /url: "#"
+              - img [ref=e378]
+              - text: Help Centre
+            - link "KYC Support Flow" [ref=e385] [cursor=pointer]:
+              - /url: /kyc
+              - img [ref=e386]
+              - text: KYC Support Flow
+            - link "Booking Support" [ref=e389] [cursor=pointer]:
+              - /url: /my-bookings
+              - img [ref=e390]
+              - text: Booking Support
+        - generic [ref=e392]:
+          - heading "Company" [level=4] [ref=e393]
+          - list [ref=e394]:
+            - listitem [ref=e395]:
+              - link "About Us" [ref=e396] [cursor=pointer]:
+                - /url: "#"
+            - listitem [ref=e397]:
+              - link "Blog" [ref=e398] [cursor=pointer]:
+                - /url: "#"
+            - listitem [ref=e399]:
+              - link "Careers" [ref=e400] [cursor=pointer]:
+                - /url: "#"
+            - listitem [ref=e401]:
+              - link "Contact Us" [ref=e402] [cursor=pointer]:
+                - /url: "#"
+        - generic [ref=e403]:
+          - heading "Product" [level=4] [ref=e404]
+          - list [ref=e405]:
+            - listitem [ref=e406]:
+              - link "Browse Bikes" [ref=e407] [cursor=pointer]:
+                - /url: /browse
+            - listitem [ref=e408]:
+              - link "How It Works" [ref=e409] [cursor=pointer]:
+                - /url: /#how-it-works
+            - listitem [ref=e410]:
+              - link "Pricing / Tariff" [ref=e411] [cursor=pointer]:
+                - /url: "#"
+            - listitem [ref=e412]:
+              - link "EV Bikes" [ref=e413] [cursor=pointer]:
+                - /url: /browse
+        - generic [ref=e414]:
+          - heading "Support" [level=4] [ref=e415]
+          - list [ref=e416]:
+            - listitem [ref=e417]:
+              - link "Help Centre" [ref=e418] [cursor=pointer]:
+                - /url: "#"
+            - listitem [ref=e419]:
+              - link "Safety" [ref=e420] [cursor=pointer]:
+                - /url: "#"
+            - listitem [ref=e421]:
+              - link "Privacy Policy" [ref=e422] [cursor=pointer]:
+                - /url: "#"
+            - listitem [ref=e423]:
+              - link "Terms & Conditions" [ref=e424] [cursor=pointer]:
+                - /url: "#"
+            - listitem [ref=e425]:
+              - link "FAQ" [ref=e426] [cursor=pointer]:
+                - /url: "#"
+        - generic [ref=e427]:
+          - heading "Partner" [level=4] [ref=e428]
+          - list [ref=e429]:
+            - listitem [ref=e430]:
+              - link "List Your Bike" [ref=e431] [cursor=pointer]:
+                - /url: /partner
+            - listitem [ref=e432]:
+              - link "Earn with RBA" [ref=e433] [cursor=pointer]:
+                - /url: "#"
+            - listitem [ref=e434]:
+              - link "Franchise" [ref=e435] [cursor=pointer]:
+                - /url: "#"
+      - generic [ref=e436]:
+        - paragraph [ref=e437]: (c) RBA Bike Rentals 2026 · Bengaluru, India
+        - generic [ref=e438]:
+          - link "Privacy" [ref=e439] [cursor=pointer]:
+            - /url: "#"
+          - link "Terms" [ref=e440] [cursor=pointer]:
+            - /url: "#"
+          - link "Cookies" [ref=e441] [cursor=pointer]:
+            - /url: "#"
+  - button "Open Next.js Dev Tools" [ref=e447] [cursor=pointer]:
+    - img [ref=e448]

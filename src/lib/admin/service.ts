@@ -13,6 +13,14 @@ import { assertCanTransition } from "@/lib/bookings/state-machine";
 import { ApiException } from "@/lib/utils/errors";
 import { notifyAdmin, notifyUser } from "@/lib/notifications/service";
 
+function getPaymentUrl(bookingId: string) {
+  const baseUrl =
+    process.env.APP_BASE_URL ||
+    process.env.BETTER_AUTH_URL ||
+    "http://localhost:3000";
+  return `${baseUrl.replace(/\/$/, "")}/my-bookings?pay=${encodeURIComponent(bookingId)}`;
+}
+
 export async function listBookingsForAdmin(filters?: { status?: string }) {
   const bookings = await listBookings({ status: filters?.status });
   const users = await listUsersByIds(bookings.map((booking) => booking.user_id));
@@ -79,7 +87,8 @@ export async function approveBooking(
       payload: {
         booking_id: updated.id,
         vehicle_id: updated.vehicle_id,
-        total_payable: updated.quote.total_payable
+        total_payable: updated.quote.total_payable,
+        payment_url: getPaymentUrl(updated.id)
       }
     }),
     notifyAdmin({

@@ -1,5 +1,9 @@
 import type { Role } from "@/lib/types/domain";
 import { auth } from "@/lib/auth/better-auth";
+import {
+  DASHBOARD_ACCESS_COOKIE,
+  verifyDashboardAccessToken
+} from "@/lib/auth/dashboard-access";
 import { getUserOrThrow, upsertUser } from "@/lib/data/repository";
 import { ApiException } from "@/lib/utils/errors";
 
@@ -61,6 +65,22 @@ export async function requireActor(
         email: session?.user?.email ?? null
       });
       role = user.role;
+    }
+  }
+
+  if (!userId || !role) {
+    const cookieHeader = request.headers.get("cookie") ?? "";
+    const dashboardCookie = cookieHeader
+      .split(";")
+      .map((part) => part.trim())
+      .find((part) => part.startsWith(`${DASHBOARD_ACCESS_COOKIE}=`))
+      ?.slice(DASHBOARD_ACCESS_COOKIE.length + 1);
+    const dashboardActor = await verifyDashboardAccessToken(
+      dashboardCookie ? decodeURIComponent(dashboardCookie) : null
+    );
+    if (dashboardActor) {
+      userId = dashboardActor.userId;
+      role = dashboardActor.role;
     }
   }
 

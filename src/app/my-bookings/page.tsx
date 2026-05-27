@@ -133,6 +133,13 @@ export default function MyBookingsPage() {
     fetchNotifications();
   }, [fetchBookings, fetchNotifications]);
 
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    if (params.get("pay")) {
+      setTab("payment_pending");
+    }
+  }, []);
+
   function loadRazorpayScript() {
     return new Promise<boolean>((resolve) => {
       if (window.Razorpay) {
