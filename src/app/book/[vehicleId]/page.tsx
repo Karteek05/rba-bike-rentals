@@ -15,6 +15,7 @@ type Vehicle = {
   rate_per_month: number;
   deposit_amount: number;
   city: string;
+  image_url?: string;
 };
 
 type Quote = {
@@ -40,7 +41,8 @@ const VEHICLES: Record<string, Vehicle> = {
     rate_per_week: 4200,
     rate_per_month: 15000,
     deposit_amount: 2000,
-    city: "bengaluru"
+    city: "bengaluru",
+    image_url: "/images/services/activa-6g.svg"
   },
   veh_002: {
     id: "veh_002",
@@ -64,7 +66,8 @@ const VEHICLES: Record<string, Vehicle> = {
     rate_per_week: 5000,
     rate_per_month: 17000,
     deposit_amount: 2500,
-    city: "bengaluru"
+    city: "bengaluru",
+    image_url: "/images/services/access-125.svg"
   }
 };
 
@@ -283,11 +286,15 @@ export default function BookPage() {
       <div className="max-w-container mx-auto px-4 sm:px-6 py-8 sm:py-10">
         <div className="grid lg:grid-cols-[1fr_420px] gap-10">
           <div>
-            <div className="bg-uber-chip-gray rounded-xl aspect-[16/9] flex flex-col items-center justify-center gap-3 mb-8">
-              <span className="w-24 h-24 rounded-full bg-white border border-black/10 flex items-center justify-center text-black">
-                <Icon name={icon} className="w-12 h-12" />
-              </span>
-              <span className="badge bg-black text-white text-xs inline-flex items-center gap-1.5">
+            <div className="bg-uber-chip-gray rounded-xl aspect-[16/9] flex flex-col items-center justify-center gap-3 mb-8 relative p-6 overflow-hidden">
+              {vehicle.image_url ? (
+                <img src={vehicle.image_url} alt={`${vehicle.brand} ${vehicle.model}`} className="w-full h-full object-contain drop-shadow-md z-10" />
+              ) : (
+                <span className="w-24 h-24 rounded-full bg-white border border-black/10 flex items-center justify-center text-black z-10">
+                  <Icon name={icon} className="w-12 h-12" />
+                </span>
+              )}
+              <span className="badge bg-black text-white text-xs inline-flex items-center gap-1.5 absolute top-4 right-4 z-20">
                 <Icon name="location" className="w-3 h-3" />
                 Bengaluru
               </span>
