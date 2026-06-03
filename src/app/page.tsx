@@ -14,8 +14,8 @@ type VehicleCardData = {
   priceWeek: number;
   priceMonth: number;
   deposit: number;
-  spec: string;
   badge: string | null;
+  imageUrl?: string;
 };
 
 const VEHICLES: VehicleCardData[] = [
@@ -29,7 +29,8 @@ const VEHICLES: VehicleCardData[] = [
     priceMonth: 15000,
     deposit: 2000,
     spec: "109 cc · BS6",
-    badge: "City Commute"
+    badge: "City Commute",
+    imageUrl: "/images/services/activa-6g.svg"
   },
   {
     id: "veh_002",
@@ -53,7 +54,8 @@ const VEHICLES: VehicleCardData[] = [
     priceMonth: 17000,
     deposit: 2500,
     spec: "Electric · 75 km range",
-    badge: "Electric"
+    badge: "Electric",
+    imageUrl: "/images/services/access-125.svg"
   }
 ];
 
@@ -381,13 +383,12 @@ function CalendarDatePicker({
                     onChange(dateValue);
                     setOpen(false);
                   }}
-                  className={`h-9 rounded-lg text-sm transition-colors ${
-                    selected
+                  className={`h-9 rounded-lg text-sm transition-colors ${selected
                       ? "bg-brand-dark text-brand-light"
                       : cell.inCurrentMonth
                         ? "text-brand-dark hover:bg-brand-dark/5"
                         : "text-[#b0b0b0] hover:bg-brand-dark/5"
-                  } ${disabled ? "opacity-35 cursor-not-allowed hover:bg-transparent" : ""}`}
+                    } ${disabled ? "opacity-35 cursor-not-allowed hover:bg-transparent" : ""}`}
                 >
                   {cell.date.getDate()}
                 </button>
@@ -433,15 +434,19 @@ function FaqItem({ q, a }: { q: string; a: string }) {
 function VehicleCard({ v }: { v: VehicleCardData }) {
   return (
     <Link href={`/book/${v.id}`} className="block group">
-      <motion.div 
+      <motion.div
         whileHover={{ y: -8 }}
         transition={{ type: "spring", stiffness: 300, damping: 20 }}
         className="bg-white rounded-xl overflow-hidden shadow-[rgba(0,0,0,0.12)_0px_4px_16px_0px] hover:shadow-[rgba(0,0,0,0.20)_0px_12px_24px_0px] transition-shadow duration-300"
       >
-        <div className="relative bg-[#f5f5f5] aspect-[16/9] flex items-center justify-center">
-          <span className="w-20 h-20 rounded-full border border-brand-dark/10 bg-white flex items-center justify-center text-brand-dark">
-            <Icon name={v.icon} className="w-10 h-10" />
-          </span>
+        <div className="relative bg-[#f5f5f5] aspect-[16/9] flex items-center justify-center p-4">
+          {v.imageUrl ? (
+            <img src={v.imageUrl} alt={v.name} className="w-full h-full object-contain drop-shadow-md" />
+          ) : (
+            <span className="w-20 h-20 rounded-full border border-brand-dark/10 bg-white flex items-center justify-center text-brand-dark">
+              <Icon name={v.icon} className="w-10 h-10" />
+            </span>
+          )}
           {v.badge && (
             <div className="absolute top-3 left-3 bg-brand-dark text-brand-light text-[11px] font-semibold px-3 py-1 rounded-pill">
               {v.badge}
@@ -518,7 +523,7 @@ export default function HomePage() {
       <section className="bg-brand-dark min-h-[calc(100vh-64px)] flex items-center py-12 sm:py-16">
         <div className="max-w-container mx-auto px-4 sm:px-6 w-full">
           <div className="grid lg:grid-cols-[1fr_420px] gap-10 lg:gap-14 items-center">
-            <motion.div 
+            <motion.div
               initial={{ opacity: 0, y: 30 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.8, ease: "easeOut" }}
@@ -558,23 +563,22 @@ export default function HomePage() {
               </div>
             </motion.div>
 
-            <motion.div 
+            <motion.div
               initial={{ opacity: 0, scale: 0.95 }}
               animate={{ opacity: 1, scale: 1 }}
               transition={{ duration: 0.6, delay: 0.2, ease: "easeOut" }}
               className="glass rounded-xl p-6 shadow-[rgba(0,0,0,0.40)_0px_24px_40px]"
             >
               <h2 className="font-bold text-brand-dark text-lg mb-1">Book a Bike</h2>
-              <p className="text-[#afafaf] text-xs mb-5">Select duration, dates, and pickup location</p>
+              <p className="text-[#526074] text-xs mb-5">Select duration, dates, and pickup location</p>
 
               <div className="flex gap-1 mb-5 bg-[#efefef] rounded-pill p-1">
                 {(["hourly", "daily", "weekly", "monthly"] as const).map((d) => (
                   <button
                     key={d}
                     onClick={() => setDuration(d)}
-                    className={`flex-1 py-2 rounded-pill text-xs font-semibold capitalize transition-colors ${
-                      duration === d ? "bg-brand-dark text-brand-light" : "text-[#4b4b4b] hover:text-brand-dark"
-                    }`}
+                    className={`flex-1 py-2 rounded-pill text-xs font-semibold capitalize transition-colors ${duration === d ? "bg-brand-dark text-brand-light" : "text-[#4b4b4b] hover:text-brand-dark"
+                      }`}
                   >
                     {d}
                   </button>
@@ -583,7 +587,7 @@ export default function HomePage() {
 
               <div className="space-y-3 mb-4">
                 <div>
-                  <label className="block text-[10px] font-bold uppercase tracking-wider text-[#afafaf] mb-1.5">Pickup Date & Time</label>
+                  <label className="block text-[10px] font-bold uppercase tracking-wider text-[#526074] mb-1.5">Pickup Date & Time</label>
                   <div className="w-full border border-brand-dark rounded-lg p-2.5 bg-white grid grid-cols-1 sm:grid-cols-[1fr_138px] gap-2">
                     <CalendarDatePicker
                       value={pickupDate}
@@ -604,7 +608,7 @@ export default function HomePage() {
                   </div>
                 </div>
                 <div>
-                  <label className="block text-[10px] font-bold uppercase tracking-wider text-[#afafaf] mb-1.5">Drop Date & Time</label>
+                  <label className="block text-[10px] font-bold uppercase tracking-wider text-[#526074] mb-1.5">Drop Date & Time</label>
                   <div className="w-full border border-brand-dark rounded-lg p-2.5 bg-white grid grid-cols-1 sm:grid-cols-[1fr_138px] gap-2">
                     <CalendarDatePicker
                       value={dropDate}
@@ -627,7 +631,7 @@ export default function HomePage() {
               </div>
 
               <div className="mb-5">
-                <label className="block text-[10px] font-bold uppercase tracking-wider text-[#afafaf] mb-1.5">Pickup Location</label>
+                <label className="block text-[10px] font-bold uppercase tracking-wider text-[#526074] mb-1.5">Pickup Location</label>
                 <select
                   value={pickupLocation}
                   onChange={(e) => setPickupLocation(e.target.value)}
@@ -647,7 +651,7 @@ export default function HomePage() {
                 Search Available Bikes
               </Link>
 
-              <p className="text-center text-[10px] text-[#afafaf] mt-3">Secure checkout · Policy-first pricing · Online booking updates</p>
+              <p className="text-center text-[10px] text-[#526074] mt-3">Secure checkout · Policy-first pricing · Online booking updates</p>
             </motion.div>
           </div>
         </div>
