@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import Sidebar from "../../components/Sidebar";
@@ -40,11 +40,12 @@ type VehicleOption = {
   price_day: number;
   deposit: number;
   km: number;
+  image_url?: string;
 };
 
 const VEHICLES: VehicleOption[] = [
-  { id: "veh_001", name: "Honda Activa 6G", category: "SCOOTER", icon: "scooter", price_day: 399, deposit: 2000, km: 120 },
-  { id: "veh_002", name: "TVS NTorq 125", category: "SCOOTER", icon: "scooter", price_day: 449, deposit: 2500, km: 150 },
+  { id: "veh_001", name: "Honda Activa 6G", category: "SCOOTER", icon: "scooter", price_day: 399, deposit: 2000, km: 120, image_url: "/images/services/activa-6g.svg" },
+  { id: "veh_002", name: "TVS NTorq 125", category: "SCOOTER", icon: "scooter", price_day: 449, deposit: 2500, km: 150, image_url: "/images/services/access-125.svg" },
   { id: "veh_003", name: "Royal Enfield Classic 350", category: "BIKE", icon: "bike", price_day: 799, deposit: 5000, km: 200 }
 ];
 
@@ -329,8 +330,12 @@ export default function CustomerDashboardPage() {
                   boxShadow: selectedVehicle.id === v.id ? "var(--glow-primary)" : undefined
                 }}
               >
-                <div className="vehicle-card-image">
-                  <Icon name={v.icon} className="w-8 h-8" />
+                <div className="vehicle-card-image" style={{ width: "100%", height: 100, display: "flex", alignItems: "center", justifyContent: "center", overflow: "hidden" }}>
+                  {v.image_url ? (
+                    <img src={v.image_url} alt={v.name} style={{ width: "100%", height: "100%", objectFit: "contain" }} />
+                  ) : (
+                    <Icon name={v.icon} className="w-8 h-8" />
+                  )}
                 </div>
                 <div className="vehicle-card-body">
                   <div className="vehicle-card-name">{v.name}</div>
