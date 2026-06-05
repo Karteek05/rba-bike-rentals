@@ -15,6 +15,67 @@ import type {
 
 const now = new Date().toISOString();
 
+const generateVehicles = (): Vehicle[] => {
+  const vehicles: Vehicle[] = [];
+  let idCounter = 1;
+
+  for (let i = 0; i < 15; i++) {
+    vehicles.push({
+      id: `veh_${String(idCounter++).padStart(3, "0")}`,
+      owner_id: "partner_001",
+      city: "bengaluru",
+      category: "scooter",
+      brand: "Honda",
+      model: "Activa 110",
+      image_urls: ["/images/services/activa-6g.svg"],
+      is_active: true,
+      deposit_amount: 2000,
+      rate_per_hour: 50,
+      rate_per_day: 250,
+      rate_per_week: 1600,
+      rate_per_month: 6000
+    });
+  }
+
+  for (let i = 0; i < 5; i++) {
+    vehicles.push({
+      id: `veh_${String(idCounter++).padStart(3, "0")}`,
+      owner_id: "partner_001",
+      city: "bengaluru",
+      category: "scooter",
+      brand: "Honda",
+      model: "Dio 110",
+      image_urls: ["/images/services/activa-6g.svg"],
+      is_active: true,
+      deposit_amount: 2000,
+      rate_per_hour: 50,
+      rate_per_day: 250,
+      rate_per_week: 1600,
+      rate_per_month: 6000
+    });
+  }
+
+  for (let i = 0; i < 5; i++) {
+    vehicles.push({
+      id: `veh_${String(idCounter++).padStart(3, "0")}`,
+      owner_id: "partner_001",
+      city: "bengaluru",
+      category: "scooter",
+      brand: "TVS",
+      model: "Jupiter 125",
+      image_urls: ["/images/services/access-125.svg"],
+      is_active: true,
+      deposit_amount: 2000,
+      rate_per_hour: 55,
+      rate_per_day: 260,
+      rate_per_week: 1625,
+      rate_per_month: 6500
+    });
+  }
+
+  return vehicles;
+};
+
 export const store: {
   users: User[];
   vehicles: Vehicle[];
@@ -59,53 +120,7 @@ export const store: {
       kyc_status: "verified"
     }
   ],
-  vehicles: [
-    {
-      id: "veh_001",
-      owner_id: "partner_001",
-      city: "bengaluru",
-      category: "scooter",
-      brand: "Honda",
-      model: "Activa 6G",
-      image_urls: ["/images/services/activa-6g.svg"],
-      is_active: true,
-      deposit_amount: 2000,
-      rate_per_hour: 120,
-      rate_per_day: 750,
-      rate_per_week: 4200,
-      rate_per_month: 15000
-    },
-    {
-      id: "veh_002",
-      owner_id: "partner_001",
-      city: "bengaluru",
-      category: "bike",
-      brand: "Yamaha",
-      model: "MT-15",
-      image_urls: ["/images/services/access-125.svg"],
-      is_active: true,
-      deposit_amount: 3000,
-      rate_per_hour: 180,
-      rate_per_day: 1200,
-      rate_per_week: 7000,
-      rate_per_month: 25000
-    },
-    {
-      id: "veh_003",
-      owner_id: "partner_001",
-      city: "bengaluru",
-      category: "ev_bike",
-      brand: "TVS",
-      model: "iQube",
-      image_urls: ["/images/services/access-125.svg"],
-      is_active: true,
-      deposit_amount: 2500,
-      rate_per_hour: 140,
-      rate_per_day: 900,
-      rate_per_week: 5000,
-      rate_per_month: 17000
-    }
-  ],
+  vehicles: generateVehicles(),
   bookings: [],
   kycRecords: [
     {
