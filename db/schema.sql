@@ -34,6 +34,67 @@ do $$ begin
 exception when duplicate_object then null;
 end $$;
 
+-- Better Auth persistence tables.
+-- These are used by the server-side Better Auth Postgres adapter when
+-- SUPABASE_DB_URL or DATABASE_URL is configured.
+create table if not exists "user" (
+  id text primary key,
+  name text not null,
+  email text not null unique,
+  "emailVerified" boolean not null,
+  image text,
+  "createdAt" timestamptz not null,
+  "updatedAt" timestamptz not null,
+  "phoneNumber" text unique,
+  "phoneNumberVerified" boolean,
+  role text
+);
+alter table if exists "user" add column if not exists "phoneNumber" text;
+alter table if exists "user" add column if not exists "phoneNumberVerified" boolean;
+alter table if exists "user" add column if not exists role text;
+create unique index if not exists idx_better_auth_user_email on "user"(email);
+create unique index if not exists idx_better_auth_user_phone_number on "user"("phoneNumber");
+
+create table if not exists session (
+  id text primary key,
+  "expiresAt" timestamptz not null,
+  token text not null unique,
+  "createdAt" timestamptz not null,
+  "updatedAt" timestamptz not null,
+  "ipAddress" text,
+  "userAgent" text,
+  "userId" text not null references "user"(id) on delete cascade
+);
+create unique index if not exists idx_better_auth_session_token on session(token);
+create index if not exists idx_better_auth_session_user_id on session("userId");
+
+create table if not exists account (
+  id text primary key,
+  "accountId" text not null,
+  "providerId" text not null,
+  "userId" text not null references "user"(id) on delete cascade,
+  "accessToken" text,
+  "refreshToken" text,
+  "idToken" text,
+  "accessTokenExpiresAt" timestamptz,
+  "refreshTokenExpiresAt" timestamptz,
+  scope text,
+  password text,
+  "createdAt" timestamptz not null,
+  "updatedAt" timestamptz not null
+);
+create index if not exists idx_better_auth_account_user_id on account("userId");
+
+create table if not exists verification (
+  id text primary key,
+  identifier text not null,
+  value text not null,
+  "expiresAt" timestamptz not null,
+  "createdAt" timestamptz not null,
+  "updatedAt" timestamptz not null
+);
+create index if not exists idx_better_auth_verification_identifier on verification(identifier);
+
 create table if not exists app_users (
   id text primary key,
   role role_type not null,
