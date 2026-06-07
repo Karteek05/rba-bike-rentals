@@ -6,7 +6,7 @@
 /out
 
 # local env
-.env*
+.env
 
 # logs
 npm-debug.log*
