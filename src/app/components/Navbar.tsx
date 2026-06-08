@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { usePathname } from "next/navigation";
+import { authClient } from "@/lib/auth/auth-client";
 
 const NAV_LINKS = [
   { href: "/browse", label: "Browse Bikes" },
@@ -33,6 +34,7 @@ function MenuIcon({ open }: { open: boolean }) {
 export default function Navbar() {
   const pathname = usePathname();
   const [open, setOpen] = useState(false);
+  const { data: session } = authClient.useSession();
 
   useEffect(() => {
     setOpen(false);
@@ -88,12 +90,44 @@ export default function Navbar() {
         </nav>
 
         <div className="flex items-center gap-2 sm:gap-3">
-          <Link
-            href="/browse"
-            className="hidden sm:inline-flex items-center rounded-full bg-black px-5 py-2.5 text-sm font-medium text-white transition-colors hover:bg-zinc-800"
-          >
-            Book a Bike
-          </Link>
+          {!session ? (
+            <>
+              <Link
+                href="/login"
+                className="hidden sm:inline-flex items-center text-sm font-medium text-[#666] hover:text-black transition-colors"
+              >
+                Sign In
+              </Link>
+              <Link
+                href="/browse"
+                className="hidden sm:inline-flex items-center rounded-full bg-black px-5 py-2.5 text-sm font-medium text-white transition-colors hover:bg-zinc-800"
+              >
+                Book a Bike
+              </Link>
+            </>
+          ) : (
+            <>
+              <Link
+                href={
+                  session.user.role === "admin" ? "/admin" :
+                  session.user.role === "partner_investor" ? "/partner" :
+                  "/customer"
+                }
+                className="hidden sm:inline-flex items-center text-sm font-medium text-black hover:text-black/70 transition-colors"
+              >
+                Dashboard
+              </Link>
+              <button
+                onClick={async () => {
+                  await authClient.signOut();
+                  window.location.href = "/";
+                }}
+                className="hidden sm:inline-flex items-center rounded-full border border-black/20 px-5 py-2.5 text-sm font-medium text-black transition-colors hover:bg-black/5"
+              >
+                Sign Out
+              </button>
+            </>
+          )}
 
           <button
             type="button"
@@ -128,13 +162,47 @@ export default function Navbar() {
               );
             })}
 
-            <Link
-              href="/browse"
-              className="mt-2 rounded-full bg-black px-5 py-3 text-center text-sm font-medium text-white transition-colors hover:bg-zinc-800 sm:hidden"
-              onClick={() => setOpen(false)}
-            >
-              Book a Bike
-            </Link>
+            {!session ? (
+              <>
+                <Link
+                  href="/login"
+                  className="rounded-2xl px-4 py-3 text-sm font-medium transition-colors text-black hover:bg-[#f3f4f6]"
+                  onClick={() => setOpen(false)}
+                >
+                  Sign In
+                </Link>
+                <Link
+                  href="/browse"
+                  className="mt-2 rounded-full bg-black px-5 py-3 text-center text-sm font-medium text-white transition-colors hover:bg-zinc-800 sm:hidden"
+                  onClick={() => setOpen(false)}
+                >
+                  Book a Bike
+                </Link>
+              </>
+            ) : (
+              <>
+                <Link
+                  href={
+                    session.user.role === "admin" ? "/admin" :
+                    session.user.role === "partner_investor" ? "/partner" :
+                    "/customer"
+                  }
+                  className="rounded-2xl px-4 py-3 text-sm font-medium transition-colors text-black hover:bg-[#f3f4f6]"
+                  onClick={() => setOpen(false)}
+                >
+                  Dashboard
+                </Link>
+                <button
+                  onClick={async () => {
+                    await authClient.signOut();
+                    window.location.href = "/";
+                  }}
+                  className="mt-2 rounded-full border border-black/20 px-5 py-3 text-center text-sm font-medium text-black transition-colors hover:bg-[#f3f4f6] sm:hidden"
+                >
+                  Sign Out
+                </button>
+              </>
+            )}
           </nav>
         </div>
       ) : null}
