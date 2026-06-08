@@ -28,9 +28,9 @@ const navItems = [
 ] as const;
 
 const FLEET_MOCK = [
-  { id: "veh_001", name: "Honda Activa 6G", category: "Scooter", icon: "scooter", status: "active", nextService: "2026-05-10" },
-  { id: "veh_002", name: "TVS NTorq 125", category: "Scooter", icon: "scooter", status: "active", nextService: "2026-06-01" },
-  { id: "veh_003", name: "Royal Enfield 350", category: "Bike", icon: "bike", status: "active", nextService: "2026-04-28" }
+  { id: "veh_001", name: "Honda Activa 110", category: "Scooter", icon: "scooter", status: "active", nextService: "2026-06-18" },
+  { id: "veh_002", name: "Honda Dio 110", category: "Scooter", icon: "scooter", status: "active", nextService: "2026-06-20" },
+  { id: "veh_003", name: "TVS Jupiter 125", category: "Scooter", icon: "scooter", status: "active", nextService: "2026-06-22" }
 ] as const;
 
 export default function PartnerDashboardPage() {

@@ -21,7 +21,7 @@ end $$;
 
 do $$ begin
   alter type booking_status_type add value if not exists 'admin_review' after 'pending_kyc';
-exception when duplicate_object then null;
+exception when duplicate_object or duplicate_table then null;
 end $$;
 
 do $$ begin
@@ -169,17 +169,27 @@ create index if not exists idx_bookings_user on bookings(user_id);
 create index if not exists idx_bookings_status_created_at on bookings(status, created_at);
 
 do $$ begin
-  alter table bookings
-    add constraint bookings_vehicle_active_window_excl
-    exclude using gist (
-      vehicle_id with =,
-      tstzrange(pickup_at, drop_at, '[)') with &&
-    )
-    where (
-      status <> 'cancelled'::booking_status_type
-      and status <> 'completed'::booking_status_type
-    );
-exception when duplicate_object then null;
+  if not exists (
+    select 1
+    from pg_constraint
+    where conname = 'bookings_vehicle_active_window_excl'
+  )
+  and not exists (
+    select 1
+    from pg_class
+    where relname = 'bookings_vehicle_active_window_excl'
+  ) then
+    alter table bookings
+      add constraint bookings_vehicle_active_window_excl
+      exclude using gist (
+        vehicle_id with =,
+        tstzrange(pickup_at, drop_at, '[)') with &&
+      )
+      where (
+        status <> 'cancelled'::booking_status_type
+        and status <> 'completed'::booking_status_type
+      );
+  end if;
 end $$;
 
 create table if not exists kyc_records (

@@ -1,116 +1,66 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
-import { motion } from "framer-motion";
+import { motion, useReducedMotion, useScroll, useTransform } from "framer-motion";
 import Icon, { type IconName } from "./components/Icon";
-
-type VehicleCardData = {
-  id: string;
-  name: string;
-  category: "Scooter" | "Bike" | "EV";
-  icon: IconName;
-  priceDay: number;
-  priceWeek: number;
-  priceMonth: number;
-  deposit: number;
-  spec: string;
-  badge: string | null;
-  image: string;
-};
-
-const VEHICLES: VehicleCardData[] = [
-  {
-    id: "veh_001",
-    name: "Honda Activa 6G",
-    category: "Scooter",
-    icon: "scooter",
-    priceDay: 750,
-    priceWeek: 4200,
-    priceMonth: 15000,
-    deposit: 2000,
-    spec: "109 cc, BS6",
-    badge: "City commute",
-    image: "https://images.pexels.com/photos/2393821/pexels-photo-2393821.jpeg?auto=compress&cs=tinysrgb&w=900"
-  },
-  {
-    id: "veh_002",
-    name: "Yamaha MT-15",
-    category: "Bike",
-    icon: "bike",
-    priceDay: 1200,
-    priceWeek: 7000,
-    priceMonth: 25000,
-    deposit: 3000,
-    spec: "155 cc, liquid cooled",
-    badge: null,
-    image: "https://images.pexels.com/photos/1629180/pexels-photo-1629180.jpeg?auto=compress&cs=tinysrgb&w=900"
-  },
-  {
-    id: "veh_003",
-    name: "TVS iQube",
-    category: "EV",
-    icon: "ev",
-    priceDay: 900,
-    priceWeek: 5000,
-    priceMonth: 17000,
-    deposit: 2500,
-    spec: "Electric, 75 km range",
-    badge: "Electric",
-    image: "https://images.pexels.com/photos/8442674/pexels-photo-8442674.jpeg?auto=compress&cs=tinysrgb&w=900"
-  }
-];
+import {
+  GST_INCLUSIVE_COPY,
+  PACKAGE_PLANS,
+  PUBLIC_FLEET,
+  getPackageRate,
+  type PublicFleetVehicle
+} from "@/lib/fleet/catalog";
 
 const HOW_STEPS: Array<{ icon: IconName; title: string; desc: string }> = [
   {
     icon: "location",
-    title: "Set the ride window",
-    desc: "Choose a Bengaluru pickup hub, date, time, and rental duration."
+    title: "Choose the package",
+    desc: "Pick a 1 week, 15 day, or monthly rental plan with GST included."
   },
   {
     icon: "scooter",
-    title: "Pick the right vehicle",
-    desc: "Compare scooters, bikes, and EVs with deposits and tariffs upfront."
+    title: "Pick the scooter",
+    desc: "Compare Activa 110, Dio 110, and Jupiter 125 availability."
   },
   {
-    icon: "idCard",
-    title: "Verify once",
-    desc: "Complete DigiLocker-based KYC before payment confirmation."
+    icon: "phone",
+    title: "Share contact details",
+    desc: "Leave your name, email, mobile, and pickup note for confirmation."
   },
   {
     icon: "shield",
-    title: "Pay and manage",
-    desc: "Use checkout, extensions, cancellations, and booking updates online."
+    title: "Confirm and ride",
+    desc: "The team reviews availability and follows up with payment details."
   }
 ];
 
 const RENTAL_PLANS = [
-  { name: "Hourly", detail: "Short errands and quick meetings", value: "From Rs. 120/hour" },
-  { name: "Daily", detail: "Office commute and single-day plans", value: "From Rs. 750/day" },
-  { name: "Weekly", detail: "Busy city weeks and work assignments", value: "From Rs. 4,200/week" },
-  { name: "Monthly", detail: "Long stays and repeat local travel", value: "From Rs. 15,000/month" }
+  { name: "1 week", detail: "Short stays and quick city use", value: "From Rs. 1,600" },
+  { name: "15 days", detail: "Half-month work or travel plans", value: "From Rs. 3,200" },
+  { name: "Monthly", detail: "Longer local commutes", value: "From Rs. 6,000" }
 ];
 
 const TRUST_FACTS: Array<{ icon: IconName; title: string; detail: string }> = [
   {
     icon: "money",
-    title: "Quote before commitment",
-    detail: "Fare, add-ons, tax, coupon impact, and deposit are shown before booking."
+    title: "GST included",
+    detail: "Package prices are shown with GST included, so the fare is easy to compare."
   },
   {
     icon: "shield",
-    title: "Payment confirmation flow",
-    detail: "Razorpay order and webhook confirmation are wired into the booking lifecycle."
+    title: "Availability review",
+    detail: "Bookings are reviewed against fleet availability before final confirmation."
   },
   {
-    icon: "idCard",
-    title: "KYC-first access",
-    detail: "DigiLocker start, callback, and status polling are supported in the app."
+    icon: "scooter",
+    title: "Scooter-first fleet",
+    detail: "The current fleet focuses on Activa 110, Dio 110, and Jupiter 125 scooters."
   },
   {
     icon: "support",
-    title: "Role-based operations",
-    detail: "Customer, partner, and admin surfaces support day-to-day rental operations."
+    title: "Ops-managed handoff",
+    detail: "Admin and partner dashboards help the team handle bookings and fleet updates."
   }
 ];
 
@@ -131,8 +81,8 @@ const LOCATIONS = [
 
 const FAQS = [
   {
-    q: "What documents are required for booking?",
-    a: "Aadhaar and Driving Licence are required for the DigiLocker-based KYC flow."
+    q: "Are the prices inclusive of GST?",
+    a: "Yes. The listed 1 week, 15 day, and monthly package rates include GST."
   },
   {
     q: "How is the deposit handled?",
@@ -144,7 +94,7 @@ const FAQS = [
   },
   {
     q: "How is pricing shown?",
-    a: "Quotes include base fare, duration amount, add-ons, tax, coupon impact, and total payable."
+    a: "Package fares are shown upfront for each scooter model, including GST."
   }
 ];
 
@@ -239,12 +189,10 @@ function toDateTimeIso(dateValue: string, timeValue: string) {
   return fromDateTimeParts(dateValue, timeValue).toISOString();
 }
 
-function hoursForDuration(duration: "hourly" | "daily" | "weekly" | "monthly") {
+function hoursForDuration(duration: "weekly" | "fortnight" | "monthly") {
   switch (duration) {
-    case "hourly":
-      return 1;
-    case "daily":
-      return 24;
+    case "fortnight":
+      return 24 * 15;
     case "weekly":
       return 24 * 7;
     case "monthly":
@@ -395,7 +343,7 @@ function FaqItem({ q, a }: { q: string; a: string }) {
   );
 }
 
-function VehicleCard({ v }: { v: VehicleCardData }) {
+function VehicleCard({ v }: { v: PublicFleetVehicle }) {
   return (
     <Link href={`/book/${v.id}`} className="group block">
       <motion.div
@@ -406,18 +354,16 @@ function VehicleCard({ v }: { v: VehicleCardData }) {
         <div className="relative aspect-[16/10] overflow-hidden bg-[color:var(--color-paper-2)]">
           <img
             src={v.image}
-            alt={`${v.name} rental option`}
+            alt={v.imageAlt}
             className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-[1.03]"
             loading="lazy"
+            onError={(event) => {
+              event.currentTarget.src = v.fallbackImage;
+            }}
           />
           <span className="absolute bottom-3 left-3 flex h-11 w-11 items-center justify-center rounded-full bg-white/90 text-[color:var(--color-ink)] shadow-sm">
             <Icon name={v.icon} className="h-5 w-5" />
           </span>
-          {v.badge && (
-            <div className="absolute left-3 top-3 rounded-full bg-[color:var(--color-ink)] px-3 py-1 text-[11px] font-semibold text-white">
-              {v.badge}
-            </div>
-          )}
           <div className="absolute right-3 top-3 inline-flex items-center gap-1 rounded-full bg-white/90 px-3 py-1 text-[11px] font-semibold text-[color:var(--color-ink)] shadow-sm">
             <Icon name="location" className="h-3 w-3" />
             Bengaluru
@@ -426,28 +372,28 @@ function VehicleCard({ v }: { v: VehicleCardData }) {
 
         <div className="p-6">
           <div className="mb-2 flex items-center justify-between gap-3">
-            <h3 className="text-lg font-bold leading-tight text-[color:var(--color-ink)]">{v.name}</h3>
+            <h3 className="text-lg font-bold leading-tight text-[color:var(--color-ink)]">
+              {v.brand} {v.model}
+            </h3>
             <span className="rounded-full bg-[color:var(--color-paper-2)] px-3 py-1 text-xs font-semibold text-[color:var(--color-copy)]">
-              {v.category}
+              ~{v.stockApprox} units
             </span>
           </div>
           <p className="mb-5 text-xs text-[color:var(--color-muted)]">{v.spec}</p>
 
           <div className="mb-5 grid grid-cols-3 overflow-hidden rounded-lg border border-[color:var(--color-line)]">
-            {[
-              { label: "Daily", price: v.priceDay },
-              { label: "Weekly", price: v.priceWeek },
-              { label: "Monthly", price: v.priceMonth }
-            ].map((p) => (
+            {PACKAGE_PLANS.map((p) => (
               <div key={p.label} className="border-r border-[color:var(--color-line)] py-3 text-center last:border-r-0">
                 <div className="mb-1 text-[10px] font-semibold uppercase text-[color:var(--color-muted)]">{p.label}</div>
-                <div className="text-sm font-bold text-[color:var(--color-ink)]">Rs. {p.price.toLocaleString()}</div>
+                <div className="text-sm font-bold text-[color:var(--color-ink)]">
+                  Rs. {getPackageRate(v, p.rateKey).toLocaleString()}
+                </div>
               </div>
             ))}
           </div>
 
           <div className="flex items-center justify-between">
-            <span className="text-xs text-[color:var(--color-muted)]">Deposit Rs. {v.deposit.toLocaleString()}</span>
+            <span className="text-xs text-[color:var(--color-muted)]">{GST_INCLUSIVE_COPY}</span>
             <span className="text-sm font-bold text-[color:var(--color-ink)] group-hover:underline">Book Now</span>
           </div>
         </div>
@@ -457,13 +403,43 @@ function VehicleCard({ v }: { v: VehicleCardData }) {
 }
 
 export default function HomePage() {
+  const prefersReducedMotion = useReducedMotion();
+  const [animateScooter, setAnimateScooter] = useState(false);
+  const [isMobileViewport, setIsMobileViewport] = useState(false);
+  const heroRef = useRef<HTMLElement | null>(null);
+  const { scrollYProgress: heroScrollProgress } = useScroll({
+    target: heroRef,
+    offset: ["start start", "end start"]
+  });
+  const scooterX = useTransform(heroScrollProgress, [0, 0.42, 1], ["-36px", "34px", "164px"]);
+  const scooterY = useTransform(heroScrollProgress, [0, 0.42, 1], ["4px", "-8px", "30px"]);
+  const scooterScale = useTransform(heroScrollProgress, [0, 0.42, 1], [1.03, 1, 0.92]);
+  const scooterRotate = useTransform(heroScrollProgress, [0, 0.42, 1], ["-1.4deg", "0deg", "2.6deg"]);
+  const pricingCardY = useTransform(heroScrollProgress, [0, 1], ["0px", "-46px"]);
+  const pricingCardOpacity = useTransform(heroScrollProgress, [0, 0.82], [1, 0.92]);
+  const roadX = useTransform(heroScrollProgress, [0, 1], ["0px", "-120px"]);
+  const ringX = useTransform(heroScrollProgress, [0, 1], ["0px", "-54px"]);
+  const ringScale = useTransform(heroScrollProgress, [0, 1], [1, 1.15]);
+  const mobileScooterY = useTransform(heroScrollProgress, [0, 1], ["0px", "-24px"]);
+  const mobileScooterOpacity = useTransform(heroScrollProgress, [0, 0.9], [1, 0.82]);
   const initialSchedule = useMemo(() => buildInitialSchedule(), []);
-  const [duration, setDuration] = useState<"hourly" | "daily" | "weekly" | "monthly">("daily");
+  const [duration, setDuration] = useState<"weekly" | "fortnight" | "monthly">("weekly");
   const [pickupDate, setPickupDate] = useState(initialSchedule.pickupDate);
   const [pickupTime, setPickupTime] = useState(initialSchedule.pickupTime);
   const [dropDate, setDropDate] = useState(initialSchedule.dropDate);
   const [dropTime, setDropTime] = useState(initialSchedule.dropTime);
   const [pickupLocation, setPickupLocation] = useState(LOCATIONS[0]);
+
+  useEffect(() => {
+    const query = window.matchMedia("(min-width: 768px)");
+    const update = () => {
+      setAnimateScooter(query.matches);
+      setIsMobileViewport(!query.matches);
+    };
+    update();
+    query.addEventListener("change", update);
+    return () => query.removeEventListener("change", update);
+  }, []);
 
   useEffect(() => {
     const pickupAt = fromDateTimeParts(pickupDate, pickupTime);
@@ -485,12 +461,13 @@ export default function HomePage() {
   const pickupAtIso = toDateTimeIso(pickupDate, pickupTime);
   const dropAtIso = toDateTimeIso(dropDate, dropTime);
   const searchHref = `/browse?duration=${duration}&pickup_at=${encodeURIComponent(pickupAtIso)}&drop_at=${encodeURIComponent(dropAtIso)}&pickup_location=${encodeURIComponent(pickupLocation)}`;
+  const heroVehicle = PUBLIC_FLEET[0];
 
   return (
     <div className="bg-[color:var(--color-paper)]">
-      <section className="relative overflow-hidden border-b border-[color:var(--color-line)] bg-[color:var(--color-ink)] py-12 text-white sm:py-16 lg:py-20">
-        <div className="section-shell relative">
-          <div className="grid gap-8 lg:grid-cols-[minmax(0,1fr)_430px] lg:items-end lg:gap-12">
+      <section ref={heroRef} className="relative overflow-hidden border-b border-[color:var(--color-line)] bg-[color:var(--color-ink)] py-12 text-white sm:py-16 lg:py-20">
+        <div className="section-shell relative max-w-[1260px]">
+          <div className="grid gap-8 lg:grid-cols-[minmax(0,760px)_minmax(360px,410px)] lg:items-end lg:gap-8 xl:grid-cols-[minmax(0,790px)_420px]">
             <motion.div
               initial={{ opacity: 0, y: 24 }}
               animate={{ opacity: 1, y: 0 }}
@@ -503,15 +480,14 @@ export default function HomePage() {
                 <span className="block whitespace-nowrap text-[0.78em]">booked cleanly.</span>
               </h1>
               <p className="mb-8 max-w-xl text-lg leading-relaxed text-white/70">
-                Scooters, bikes, and EVs with KYC-first booking, clear deposits, and rental windows that fit real Bengaluru days.
+                Activa, Dio, and Jupiter scooters with simple weekly, 15-day, and monthly packages across Bengaluru.
               </p>
 
               <div className="mb-8 flex flex-wrap gap-2">
                 {[
-                  { icon: "idCard", text: "DigiLocker KYC" },
-                  { icon: "shield", text: "Razorpay checkout" },
-                  { icon: "money", text: "Transparent pricing" },
-                  { icon: "clock", text: "Flexible durations" }
+                  { icon: "money", text: "GST included" },
+                  { icon: "scooter", text: "25 scooters approx" },
+                  { icon: "clock", text: "Weekly to monthly" }
                 ].map((t) => (
                   <span key={t.text} className="inline-flex items-center gap-1.5 rounded-full border border-white/15 bg-white/10 px-3 py-2 text-xs font-semibold text-white">
                     <Icon name={t.icon as IconName} className="h-3.5 w-3.5" />
@@ -520,33 +496,115 @@ export default function HomePage() {
                 ))}
               </div>
 
-              <div className="grid max-w-3xl gap-3 sm:grid-cols-3">
-                {[
-                  { n: "Hourly to monthly", l: "Rental plans" },
-                  { n: "Digital KYC", l: "Before payment" },
-                  { n: "Extend or cancel", l: "Online workflows" }
-                ].map((s) => (
-                  <div key={s.l} className="rounded-lg border border-white/10 bg-white/5 p-4">
-                    <div className="text-sm font-bold leading-tight text-white">{s.n}</div>
-                    <div className="mt-1 text-xs text-white/55">{s.l}</div>
-                  </div>
-                ))}
-              </div>
-
-              <div className="mt-8 grid max-w-4xl grid-cols-[1.4fr_0.8fr] gap-3 max-sm:grid-cols-1">
-                <img
-                  src="https://images.pexels.com/photos/1629180/pexels-photo-1629180.jpeg?auto=compress&cs=tinysrgb&w=1200"
-                  alt="Motorcycle ready for city rental"
-                  className="h-64 w-full rounded-lg object-cover sm:h-80"
+              <div className="relative mt-5 max-w-[940px] pb-4 sm:min-h-[360px] lg:-ml-4 xl:-ml-8">
+                <motion.div
+                  style={
+                    prefersReducedMotion || !animateScooter
+                      ? undefined
+                      : {
+                          x: roadX
+                        }
+                  }
+                  className="absolute bottom-6 left-0 hidden h-px w-[115%] bg-white/14 sm:block"
                 />
-                <div className="flex flex-col justify-between rounded-lg border border-white/10 bg-white/5 p-5">
-                  <p className="text-sm leading-relaxed text-white/68">
-                    Built for practical city use: office commutes, weekend errands, short stays, and partner-managed fleet ops.
+                <motion.div
+                  style={
+                    prefersReducedMotion || !animateScooter
+                      ? undefined
+                      : {
+                          x: ringX,
+                          scale: ringScale
+                        }
+                  }
+                  className="absolute bottom-20 left-4 hidden h-56 w-56 rounded-full border border-white/10 sm:block"
+                />
+                <motion.div
+                  style={
+                    prefersReducedMotion || !animateScooter
+                      ? undefined
+                      : {
+                          x: roadX
+                        }
+                  }
+                  className="absolute bottom-16 left-12 hidden h-px w-28 bg-white/10 sm:block"
+                />
+
+                <div className="relative h-[270px] overflow-visible sm:h-[340px] sm:max-w-[620px]">
+                  <motion.div
+                    style={
+                      prefersReducedMotion
+                        ? undefined
+                        : animateScooter
+                          ? {
+                              x: scooterX,
+                              y: scooterY,
+                              scale: scooterScale,
+                              rotate: scooterRotate,
+                              transformOrigin: "52% 72%"
+                            }
+                          : isMobileViewport
+                            ? {
+                                y: mobileScooterY,
+                                opacity: mobileScooterOpacity
+                              }
+                            : undefined
+                    }
+                    className="absolute bottom-14 left-1/2 -ml-[58%] h-[330px] w-[116%] sm:-left-32 sm:bottom-12 sm:ml-0 sm:h-[430px] sm:w-[760px]"
+                  >
+                    <img
+                      src={heroVehicle.image}
+                      alt={heroVehicle.imageAlt}
+                      className="h-full w-full object-contain drop-shadow-[0_34px_46px_rgba(0,0,0,0.52)]"
+                      onError={(event) => {
+                        event.currentTarget.src = heroVehicle.fallbackImage;
+                      }}
+                    />
+                  </motion.div>
+                </div>
+
+                <motion.div
+                  style={
+                    prefersReducedMotion || !animateScooter
+                      ? undefined
+                      : {
+                          y: pricingCardY,
+                          opacity: pricingCardOpacity
+                        }
+                  }
+                  className="relative z-20 -mt-3 ml-auto w-full max-w-[330px] rounded-lg border border-white/55 bg-[color-mix(in_oklch,var(--color-ink)_78%,white_8%)] p-4 shadow-[0_24px_70px_rgba(0,0,0,0.32)] backdrop-blur-md sm:absolute sm:bottom-2 sm:right-6 sm:mt-0 lg:right-10 xl:right-14"
+                >
+                  <div className="mb-4 flex items-start justify-between gap-3">
+                    <div>
+                      <div className="text-xs font-bold text-white/55">Featured scooter</div>
+                      <div className="text-sm font-black text-white">
+                        {heroVehicle.brand} {heroVehicle.model}
+                      </div>
+                    </div>
+                    <span className="shrink-0 rounded-full border border-white/55 px-2.5 py-1 text-[11px] font-bold text-white/76">
+                      ~15 units
+                    </span>
+                  </div>
+
+                  <div className="divide-y divide-white/12 border-y border-white/12">
+                    {[
+                      { n: "Rs. 1,600", l: "1 week" },
+                      { n: "Rs. 3,200", l: "15 days" },
+                      { n: "Rs. 6,000", l: "Monthly" }
+                    ].map((s) => (
+                      <div key={s.l} className="flex items-center justify-between gap-5 py-3">
+                        <span className="text-xs font-semibold uppercase text-white/58">{s.l}</span>
+                        <span className="text-sm font-black text-white">{s.n}</span>
+                      </div>
+                    ))}
+                  </div>
+
+                  <p className="mt-4 text-xs leading-relaxed text-white/72">
+                    Practical city rentals for office commutes, hostel stays, short assignments, and everyday local movement.
                   </p>
-                  <Link href="/browse" className="btn-primary mt-6 w-full">
+                  <Link href="/browse" className="btn-primary mt-5 flex w-full justify-center">
                     Browse Fleet
                   </Link>
-                </div>
+                </motion.div>
               </div>
             </motion.div>
 
@@ -559,8 +617,12 @@ export default function HomePage() {
               <h2 className="mb-1 text-xl font-black text-[color:var(--color-ink)]">Find a bike</h2>
               <p className="mb-5 text-sm text-[color:var(--color-copy)]">Select duration, dates, and pickup location.</p>
 
-              <div className="mb-5 grid grid-cols-2 gap-2 rounded-lg bg-[color:var(--color-paper-2)] p-1 sm:grid-cols-4">
-                {(["hourly", "daily", "weekly", "monthly"] as const).map((d) => (
+              <div className="mb-5 grid grid-cols-3 gap-2 rounded-lg bg-[color:var(--color-paper-2)] p-1">
+                {([
+                  ["weekly", "1 week"],
+                  ["fortnight", "15 days"],
+                  ["monthly", "Monthly"]
+                ] as const).map(([d, label]) => (
                   <button
                     key={d}
                     onClick={() => setDuration(d)}
@@ -570,7 +632,7 @@ export default function HomePage() {
                         : "text-[color:var(--color-copy)] hover:bg-white hover:text-[color:var(--color-ink)]"
                     }`}
                   >
-                    {d}
+                    {label}
                   </button>
                 ))}
               </div>
@@ -622,7 +684,7 @@ export default function HomePage() {
               </Link>
 
               <p className="mt-3 text-center text-[10px] font-semibold text-[color:var(--color-muted)]">
-                Secure checkout - policy-first pricing - online booking updates
+                GST included - availability reviewed - quick booking follow-up
               </p>
             </motion.div>
           </div>
@@ -642,7 +704,7 @@ export default function HomePage() {
           </div>
 
           <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-            {VEHICLES.map((vehicle) => (
+            {PUBLIC_FLEET.map((vehicle) => (
               <VehicleCard key={vehicle.id} v={vehicle} />
             ))}
           </div>
@@ -654,7 +716,7 @@ export default function HomePage() {
           <div className="mb-12 grid gap-6 lg:grid-cols-[0.8fr_1.2fr] lg:items-end">
             <h2 className="section-title">A rental flow that stays out of the way.</h2>
             <p className="section-copy max-w-2xl">
-              The public experience is short and practical, while the platform keeps KYC, payment confirmation, and booking state changes explicit behind the scenes.
+              The public experience is short and practical: choose a scooter, choose a package, share contact details, and let the team confirm availability.
             </p>
           </div>
 
@@ -699,7 +761,7 @@ export default function HomePage() {
                 Built for policy-first rentals.
               </h2>
               <p className="max-w-md text-sm leading-relaxed text-white/62">
-                The product is not just a glossy storefront. It accounts for quotes, KYC, payments, booking changes, fleet operations, and admin review.
+                The product is not just a glossy storefront. It accounts for package pricing, bookings, customer follow-up, fleet operations, and admin review.
               </p>
             </div>
 
@@ -759,14 +821,14 @@ export default function HomePage() {
             Ready to book the ride?
           </h2>
           <p className="mx-auto mb-8 max-w-md text-sm leading-relaxed text-[color:var(--color-copy)]">
-            Complete KYC once and book available bikes with transparent pricing.
+            Pick a scooter package and send a booking request with transparent GST-inclusive pricing.
           </p>
           <div className="flex flex-col justify-center gap-3 sm:flex-row">
             <Link href="/browse" className="btn-primary px-10 py-3.5 text-base">
               Browse Bikes
             </Link>
-            <Link href="/kyc" className="btn-secondary px-10 py-3.5 text-base">
-              Start KYC
+            <Link href="/my-bookings" className="btn-secondary px-10 py-3.5 text-base">
+              My Bookings
             </Link>
           </div>
         </div>

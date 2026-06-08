@@ -4,66 +4,14 @@ import { Suspense, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import Icon, { type IconName } from "../components/Icon";
-
-type Vehicle = {
-  id: string;
-  brand: string;
-  model: string;
-  category: string;
-  is_active: boolean;
-  rate_per_hour: number;
-  rate_per_day: number;
-  rate_per_week: number;
-  rate_per_month: number;
-  deposit_amount: number;
-  city: string;
-  image: string;
-};
-
-const VEHICLES: Vehicle[] = [
-  {
-    id: "veh_001",
-    brand: "Honda",
-    model: "Activa 6G",
-    category: "scooter",
-    is_active: true,
-    rate_per_hour: 120,
-    rate_per_day: 750,
-    rate_per_week: 4200,
-    rate_per_month: 15000,
-    deposit_amount: 2000,
-    city: "bengaluru",
-    image: "https://images.pexels.com/photos/2393821/pexels-photo-2393821.jpeg?auto=compress&cs=tinysrgb&w=900"
-  },
-  {
-    id: "veh_002",
-    brand: "Yamaha",
-    model: "MT-15",
-    category: "bike",
-    is_active: true,
-    rate_per_hour: 180,
-    rate_per_day: 1200,
-    rate_per_week: 7000,
-    rate_per_month: 25000,
-    deposit_amount: 3000,
-    city: "bengaluru",
-    image: "https://images.pexels.com/photos/1629180/pexels-photo-1629180.jpeg?auto=compress&cs=tinysrgb&w=900"
-  },
-  {
-    id: "veh_003",
-    brand: "TVS",
-    model: "iQube",
-    category: "ev_bike",
-    is_active: true,
-    rate_per_hour: 140,
-    rate_per_day: 900,
-    rate_per_week: 5000,
-    rate_per_month: 17000,
-    deposit_amount: 2500,
-    city: "bengaluru",
-    image: "https://images.pexels.com/photos/8442674/pexels-photo-8442674.jpeg?auto=compress&cs=tinysrgb&w=900"
-  }
-];
+import {
+  GST_INCLUSIVE_COPY,
+  PACKAGE_PLANS,
+  PUBLIC_FLEET,
+  getPackageRate,
+  type PackageRateKey,
+  type PublicFleetVehicle
+} from "@/lib/fleet/catalog";
 
 const CATEGORY_ICONS: Record<string, IconName> = {
   scooter: "scooter",
@@ -74,29 +22,27 @@ const CATEGORY_ICONS: Record<string, IconName> = {
 
 const CATEGORIES = [
   { key: "all", label: "All" },
-  { key: "scooter", label: "Scooters" },
-  { key: "bike", label: "Bikes" },
-  { key: "ev_bike", label: "EV Bikes" }
+  { key: "scooter", label: "Scooters" }
 ];
 
 const DURATIONS = [
-  { key: "hour", label: "Hourly", rateKey: "rate_per_hour" as keyof Vehicle },
-  { key: "day", label: "Daily", rateKey: "rate_per_day" as keyof Vehicle },
-  { key: "week", label: "Weekly", rateKey: "rate_per_week" as keyof Vehicle },
-  { key: "month", label: "Monthly", rateKey: "rate_per_month" as keyof Vehicle }
+  { key: "weekly", label: "1 week", rateKey: "rate_per_week" as const },
+  { key: "fortnight", label: "15 days", rateKey: "rate_per_day" as const },
+  { key: "monthly", label: "Monthly", rateKey: "rate_per_month" as const }
 ];
 
-function mapDurationParamToRateKey(param: string | null): keyof Vehicle {
+function mapDurationParamToRateKey(param: string | null): PackageRateKey {
   switch (param) {
-    case "hourly":
-      return "rate_per_hour";
     case "weekly":
       return "rate_per_week";
+    case "fortnight":
+    case "15-days":
+      return "rate_per_day";
     case "monthly":
       return "rate_per_month";
     case "daily":
     default:
-      return "rate_per_day";
+      return "rate_per_week";
   }
 }
 
@@ -104,11 +50,11 @@ function VehicleCard({
   vehicle,
   durationKey
 }: {
-  vehicle: Vehicle;
-  durationKey: keyof Vehicle;
+  vehicle: PublicFleetVehicle;
+  durationKey: PackageRateKey;
 }) {
-  const rate = vehicle[durationKey] as number;
-  const durUnit = DURATIONS.find((d) => d.rateKey === durationKey)?.key ?? "day";
+  const rate = getPackageRate(vehicle, durationKey);
+  const durUnit = PACKAGE_PLANS.find((d) => d.rateKey === durationKey)?.unit ?? "week";
   const icon = CATEGORY_ICONS[vehicle.category] ?? "scooter";
 
   return (
@@ -117,9 +63,12 @@ function VehicleCard({
         <div className="relative aspect-[16/10] overflow-hidden bg-[color:var(--color-paper-2)]">
           <img
             src={vehicle.image}
-            alt={`${vehicle.brand} ${vehicle.model}`}
+            alt={vehicle.imageAlt}
             className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-[1.03]"
             loading="lazy"
+            onError={(event) => {
+              event.currentTarget.src = vehicle.fallbackImage;
+            }}
           />
           <span className="absolute left-3 top-3 inline-flex items-center gap-1 rounded-full bg-white/90 px-3 py-1 text-[11px] font-bold text-[color:var(--color-ink)]">
             <Icon name={icon} className="h-3.5 w-3.5" />
@@ -138,7 +87,7 @@ function VehicleCard({
               </h3>
               <div className="mt-2 flex items-center gap-1 text-xs capitalize text-[color:var(--color-muted)]">
                 <Icon name="location" className="h-3.5 w-3.5" />
-                {vehicle.city}
+                Bengaluru · ~{vehicle.stockApprox} units
               </div>
             </div>
           </div>
@@ -149,8 +98,8 @@ function VehicleCard({
               <span className="ml-1 text-sm text-[color:var(--color-copy)]">/{durUnit}</span>
             </div>
             <p className="text-right text-xs text-[color:var(--color-muted)]">
-              Deposit<br />
-              Rs. {vehicle.deposit_amount.toLocaleString()}
+              {GST_INCLUSIVE_COPY}<br />
+              package fare
             </p>
           </div>
 
@@ -165,8 +114,8 @@ function BrowsePageContent() {
   const searchParams = useSearchParams();
   const initialDuration = mapDurationParamToRateKey(searchParams.get("duration"));
   const [category, setCategory] = useState("all");
-  const [duration, setDuration] = useState<keyof Vehicle>(initialDuration);
-  const [maxPrice, setMaxPrice] = useState(30000);
+  const [duration, setDuration] = useState<PackageRateKey>(initialDuration);
+  const [maxPrice, setMaxPrice] = useState(7000);
   const [query, setQuery] = useState("");
   const [sortBy, setSortBy] = useState<"price_asc" | "price_desc" | "model">("price_asc");
 
@@ -174,14 +123,14 @@ function BrowsePageContent() {
     setDuration(mapDurationParamToRateKey(searchParams.get("duration")));
   }, [searchParams]);
 
-  const currentDurUnit = DURATIONS.find((d) => d.rateKey === duration)?.key ?? "day";
+  const currentDurUnit = PACKAGE_PLANS.find((d) => d.rateKey === duration)?.unit ?? "week";
 
   const filtered = useMemo(() => {
     const normalizedQuery = query.trim().toLowerCase();
 
-    const list = VEHICLES.filter((vehicle) => {
+    const list = PUBLIC_FLEET.filter((vehicle) => {
       const matchCat = category === "all" || vehicle.category === category;
-      const rate = vehicle[duration] as number;
+      const rate = getPackageRate(vehicle, duration);
       const matchPrice = rate <= maxPrice;
       const matchQuery =
         !normalizedQuery || `${vehicle.brand} ${vehicle.model}`.toLowerCase().includes(normalizedQuery);
@@ -192,8 +141,8 @@ function BrowsePageContent() {
       if (sortBy === "model") {
         return `${a.brand} ${a.model}`.localeCompare(`${b.brand} ${b.model}`);
       }
-      const aRate = a[duration] as number;
-      const bRate = b[duration] as number;
+      const aRate = getPackageRate(a, duration);
+      const bRate = getPackageRate(b, duration);
       return sortBy === "price_asc" ? aRate - bRate : bRate - aRate;
     });
   }, [category, duration, maxPrice, query, sortBy]);
@@ -212,7 +161,7 @@ function BrowsePageContent() {
             <div className="rounded-lg border border-white/10 bg-white/5 p-5">
               <div className="text-3xl font-black text-white">{filtered.length}</div>
               <p className="mt-1 text-sm leading-relaxed text-white/62">
-                vehicle(s) currently matching your filters in Bengaluru.
+                scooter package(s) currently matching your filters in Bengaluru.
               </p>
             </div>
           </div>
@@ -293,8 +242,8 @@ function BrowsePageContent() {
             <p className="mb-6 text-sm text-[color:var(--color-copy)]">Try adjusting category, price, or model search.</p>
             <button
               onClick={() => {
-                setCategory("all");
-                setMaxPrice(30000);
+              setCategory("all");
+                setMaxPrice(7000);
                 setQuery("");
                 setSortBy("price_asc");
               }}

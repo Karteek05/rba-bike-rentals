@@ -11,8 +11,8 @@ const FOOTER_LINKS = {
   Product: [
     { label: "Browse Bikes", href: "/browse" },
     { label: "How It Works", href: "/#how-it-works" },
-    { label: "Pricing / Tariff", href: "#" },
-    { label: "EV Bikes", href: "/browse" }
+    { label: "Pricing / Tariff", href: "/browse" },
+    { label: "My Bookings", href: "/my-bookings" }
   ],
   Support: [
     { label: "Help Centre", href: "#" },
@@ -22,9 +22,8 @@ const FOOTER_LINKS = {
     { label: "FAQ", href: "#" }
   ],
   Partner: [
-    { label: "List Your Bike", href: "/partner" },
-    { label: "Earn with RBA", href: "#" },
-    { label: "Franchise", href: "#" }
+    { label: "Partner Login", href: "/dashboard-access?role=partner" },
+    { label: "Admin Login", href: "/dashboard-access?role=admin" }
   ]
 };
 
@@ -36,16 +35,16 @@ export default function Footer() {
           <div className="col-span-2 md:col-span-1">
             <div className="text-2xl font-black mb-4">RBA<span className="text-[color:var(--color-accent)]">.</span></div>
             <p className="text-white/60 text-sm leading-relaxed mb-5">
-              Bengaluru bike rentals with transparent pricing, DigiLocker KYC, and flexible duration plans.
+              Bengaluru scooter rentals with GST-inclusive weekly, 15-day, and monthly packages.
             </p>
             <div className="flex flex-col gap-2 text-xs">
               <a href="#" className="nav-focus text-white/65 hover:text-white transition-colors inline-flex items-center gap-2">
                 <Icon name="support" className="w-3.5 h-3.5" />
                 Help Centre
               </a>
-              <a href="/kyc" className="nav-focus text-white/65 hover:text-white transition-colors inline-flex items-center gap-2">
+              <a href="/login" className="nav-focus text-white/65 hover:text-white transition-colors inline-flex items-center gap-2">
                 <Icon name="mail" className="w-3.5 h-3.5" />
-                KYC Support Flow
+                Account Login
               </a>
               <a href="/my-bookings" className="nav-focus text-white/65 hover:text-white transition-colors inline-flex items-center gap-2">
                 <Icon name="chat" className="w-3.5 h-3.5" />

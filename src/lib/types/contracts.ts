@@ -37,9 +37,9 @@ export interface BookingCustomerProfile {
   legal_name: string;
   email: string;
   mobile: string;
-  pan_number: string;
-  date_of_birth: string;
-  cibil_consent: boolean;
+  pan_number?: string;
+  date_of_birth?: string;
+  cibil_consent?: boolean;
 }
 
 export interface ExtendBookingRequest {

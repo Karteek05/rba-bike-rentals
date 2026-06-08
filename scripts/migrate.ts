@@ -1,6 +1,9 @@
 import fs from "fs";
 import path from "path";
+import { loadEnvConfig } from "@next/env";
 import { Pool } from "pg";
+
+loadEnvConfig(process.cwd());
 
 async function run() {
   const dbUrl = process.env.SUPABASE_DB_URL ?? process.env.DATABASE_URL;
@@ -34,4 +37,3 @@ run().catch((error) => {
   console.error(error);
   process.exit(1);
 });
-

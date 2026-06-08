@@ -76,7 +76,6 @@ const navItems = [
   { href: "/admin", icon: "settings", label: "Dashboard" },
   { href: "/admin#fleet", icon: "bike", label: "Fleet Ops" },
   { href: "/admin#bookings", icon: "list", label: "Bookings" },
-  { href: "/admin#kyc", icon: "idCard", label: "KYC Queue" },
   { href: "/admin#tracking", icon: "location", label: "Live Tracking" },
   { href: "/admin#audit", icon: "search", label: "Audit Logs" }
 ] as const;
@@ -84,14 +83,14 @@ const navItems = [
 const emptyVehicleForm: VehicleForm = {
   owner_id: "partner_001",
   category: "scooter",
-  brand: "",
-  model: "",
+  brand: "Honda",
+  model: "Activa 110",
   is_active: true,
   deposit_amount: 2000,
-  rate_per_hour: 120,
-  rate_per_day: 750,
-  rate_per_week: 4200,
-  rate_per_month: 15000
+  rate_per_hour: 0,
+  rate_per_day: 3200,
+  rate_per_week: 1600,
+  rate_per_month: 6000
 };
 
 function StatusBadge({ status }: { status: string }) {
@@ -166,25 +165,19 @@ export default function AdminDashboardPage() {
     setError(null);
     setLoading("refresh");
     try {
-      const [bookingsRes, kycRes, trackingRes, vehiclesRes] = await Promise.all([
+      const [bookingsRes, trackingRes, vehiclesRes] = await Promise.all([
         fetch("/api/admin/bookings", { headers }),
-        fetch("/api/admin/kyc/manual-review", { headers }),
         fetch("/api/admin/tracking", { headers }),
         fetch("/api/admin/vehicles?include_inactive=true", { headers })
       ]);
-      const [bookingsJson, kycJson, trackingJson, vehiclesJson] = await Promise.all([
+      const [bookingsJson, trackingJson, vehiclesJson] = await Promise.all([
         bookingsRes.json(),
-        kycRes.json(),
         trackingRes.json(),
         vehiclesRes.json()
       ]);
 
       if (!bookingsRes.ok || !bookingsJson.ok) {
         setError(bookingsJson?.error?.message ?? "Failed to load bookings");
-        return;
-      }
-      if (!kycRes.ok || !kycJson.ok) {
-        setError(kycJson?.error?.message ?? "Failed to load KYC queue");
         return;
       }
       if (!trackingRes.ok || !trackingJson.ok) {
@@ -198,7 +191,7 @@ export default function AdminDashboardPage() {
 
       const nextVehicles = (vehiclesJson.data.vehicles as VehicleItem[]) ?? [];
       setBookings(bookingsJson.data.bookings);
-      setKycItems(kycJson.data.items);
+      setKycItems([]);
       setTrackingItems(trackingJson.data.items ?? []);
       setVehicles(nextVehicles);
 
@@ -498,7 +491,7 @@ export default function AdminDashboardPage() {
 
   const filterTabs = [
     { key: "all", label: "All" },
-    { key: "pending_kyc", label: "Pending KYC" },
+    { key: "pending_kyc", label: "Pending" },
     { key: "admin_review", label: "Admin Review" },
     { key: "payment_pending", label: "Payment Pending" },
     { key: "confirmed", label: "Confirmed" },
@@ -519,7 +512,7 @@ export default function AdminDashboardPage() {
               <Icon name="settings" className="w-5 h-5" />
               Admin Dashboard
             </h1>
-            <p>Booking operations, fleet controls, KYC queue, and platform tracking.</p>
+            <p>Booking operations, fleet controls, approval review, and platform tracking.</p>
           </div>
           <button className="btn btn-secondary" onClick={refreshAll} disabled={!!loading}>
             {loading === "refresh" ? <span className="spinner" /> : <Icon name="refresh" className="w-4 h-4" />} Refresh All
@@ -546,9 +539,9 @@ export default function AdminDashboardPage() {
             <div className="stat-sub">All statuses</div>
           </div>
           <div className="stat-card">
-            <div className="stat-label">KYC Review Queue</div>
-            <div className="stat-value accent">{kycItems.length}</div>
-            <div className="stat-sub">Manual reviews</div>
+            <div className="stat-label">Admin Review Queue</div>
+            <div className="stat-value accent">{statusCounts["admin_review"] || 0}</div>
+            <div className="stat-sub">Awaiting approval</div>
           </div>
           <div className="stat-card">
             <div className="stat-label">Active Fleet</div>
@@ -952,7 +945,7 @@ export default function AdminDashboardPage() {
                     <th>Pickup</th>
                     <th>Drop</th>
                     <th>Status</th>
-                    <th>Risk</th>
+                    <th>Review</th>
                     <th>Amount</th>
                     <th>Actions</th>
                   </tr>
@@ -979,15 +972,13 @@ export default function AdminDashboardPage() {
                       </td>
                       <td>
                         <div className="flex gap-2" style={{ flexWrap: "wrap" }}>
-                          <span className="spec-chip">DL {booking.kyc?.dl_verified ? "ok" : "pending"}</span>
-                          <span className="spec-chip">Aadhaar {booking.kyc?.aadhaar_verified ? "ok" : "pending"}</span>
-                          {booking.kyc?.cibil_score ? (
-                            <span className="spec-chip">
-                              CIBIL {booking.kyc.cibil_score} {booking.kyc.cibil_risk_band ?? ""}
-                            </span>
-                          ) : (
-                            <span className="spec-chip">CIBIL pending</span>
-                          )}
+                          <span className="spec-chip">
+                            {booking.status === "admin_review"
+                              ? "Awaiting admin approval"
+                              : booking.status === "payment_pending"
+                                ? "Payment link sent"
+                                : booking.status.replace(/_/g, " ")}
+                          </span>
                         </div>
                       </td>
                       <td style={{ fontWeight: 700, color: "var(--primary)" }}>
@@ -1041,128 +1032,6 @@ export default function AdminDashboardPage() {
             subtitle="Real-time location snapshots for all active tracked vehicles."
             items={trackingItems}
           />
-        </div>
-
-        <div id="kyc">
-          <div className="section-header mb-4">
-            <div>
-              <h2 className="inline-flex items-center gap-2">
-                <Icon name="idCard" className="w-5 h-5" />
-                KYC Manual Review Queue
-              </h2>
-              <p>
-                {kycItems.length} item{kycItems.length !== 1 ? "s" : ""} pending review
-              </p>
-            </div>
-          </div>
-
-          {kycItems.length === 0 ? (
-            <div className="empty-state">
-              <div className="empty-state-icon inline-flex items-center justify-center">
-                <Icon name="checkCircle" className="w-6 h-6" />
-              </div>
-              <p>No items in manual review queue.</p>
-            </div>
-          ) : (
-            <div
-              style={{
-                display: "grid",
-                gridTemplateColumns: "repeat(auto-fill, minmax(280px, 1fr))",
-                gap: 16
-              }}
-            >
-              {kycItems.map((item) => (
-                <div
-                  key={item.user_id}
-                  className="card"
-                  style={{ border: "1px solid rgba(245,158,11,0.15)" }}
-                >
-                  <div className="flex-between mb-4">
-                    <div>
-                      <div style={{ fontWeight: 700 }}>{item.user_id}</div>
-                      <div className="text-xs text-muted mt-1">
-                        Updated {formatDate(item.updated_at)}
-                      </div>
-                    </div>
-                    <StatusBadge status={item.status} />
-                  </div>
-
-                  <div style={{ display: "flex", gap: 16, marginBottom: 16 }}>
-                    <div className="flex gap-2" style={{ alignItems: "center" }}>
-                      <Icon
-                        name={item.aadhaar_verified ? "checkCircle" : "close"}
-                        className="w-4 h-4"
-                      />
-                      <span className="text-sm text-muted">Aadhaar</span>
-                    </div>
-                    <div className="flex gap-2" style={{ alignItems: "center" }}>
-                      <Icon
-                        name={item.dl_verified ? "checkCircle" : "close"}
-                        className="w-4 h-4"
-                      />
-                      <span className="text-sm text-muted">DL</span>
-                    </div>
-                    {item.cibil_score !== undefined && (
-                      <div className="flex gap-2" style={{ alignItems: "center" }}>
-                        <span className="spec-chip">
-                          CIBIL {item.cibil_score} {item.cibil_risk_band ?? ""}
-                        </span>
-                      </div>
-                    )}
-                  </div>
-
-                  {item.failure_reason && (
-                    <div
-                      style={{
-                        background: "rgba(239,68,68,0.08)",
-                        border: "1px solid rgba(239,68,68,0.15)",
-                        borderRadius: "var(--radius-sm)",
-                        padding: "8px 10px",
-                        fontSize: "0.78rem",
-                        color: "#fca5a5",
-                        marginBottom: 14,
-                        display: "inline-flex",
-                        gap: 8,
-                        alignItems: "center"
-                      }}
-                    >
-                      <Icon name="warning" className="w-4 h-4" />
-                      {item.failure_reason}
-                    </div>
-                  )}
-
-                  <div className="flex gap-2">
-                    <button
-                      className="btn btn-success"
-                      style={{ flex: 1 }}
-                      onClick={() => approveKyc(item.user_id)}
-                      disabled={!!loading}
-                    >
-                      {loading === `approve-kyc-${item.user_id}` ? (
-                        <span className="spinner" />
-                      ) : (
-                        <Icon name="checkCircle" className="w-4 h-4" />
-                      )}{" "}
-                      Approve
-                    </button>
-                    <button
-                      className="btn btn-danger"
-                      style={{ flex: 1 }}
-                      onClick={() => rejectKyc(item.user_id)}
-                      disabled={!!loading}
-                    >
-                      {loading === `reject-kyc-${item.user_id}` ? (
-                        <span className="spinner" />
-                      ) : (
-                        <Icon name="close" className="w-4 h-4" />
-                      )}{" "}
-                      Reject
-                    </button>
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
         </div>
       </div>
     </div>

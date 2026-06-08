@@ -1,6 +1,7 @@
 import { betterAuth } from "better-auth";
-import { phoneNumber } from "better-auth/plugins";
+import { emailOTP } from "better-auth/plugins/email-otp";
 import { Pool } from "pg";
+import { sendSmtpMail } from "@/lib/integrations/smtp";
 
 const isProduction = process.env.APP_ENV === "production";
 const dbUrl = resolveAuthDatabaseUrl();
@@ -49,15 +50,21 @@ export const auth = betterAuth({
         }
       : undefined,
   plugins: [
-    phoneNumber({
-      sendOTP: ({ phoneNumber: mobile, code }) => {
-        if (process.env.APP_ENV !== "production") {
-          console.log(`[dev-phone-otp] ${mobile}: ${code}`);
-        }
-      },
-      signUpOnVerification: {
-        getTempEmail: (mobile) => `${mobile.replace(/\D/g, "") || "mobile"}@phone.rbabikerentals.local`,
-        getTempName: (mobile) => mobile
+    emailOTP({
+      expiresIn: 300,
+      otpLength: 6,
+      resendStrategy: "reuse",
+      async sendVerificationOTP({ email, otp, type }) {
+        await sendSmtpMail({
+          to: email,
+          subject: type === "sign-in" ? "Your RBA login code" : "Your RBA verification code",
+          text: [
+            `Your RBA verification code is ${otp}.`,
+            "",
+            "This code expires in 5 minutes.",
+            "If you did not request it, you can ignore this email."
+          ].join("\n")
+        });
       }
     })
   ],

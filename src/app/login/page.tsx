@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import Icon from "../components/Icon";
 
-type AuthMode = "email" | "signup" | "mobile";
+type AuthMode = "email" | "signup";
 
 async function postAuth(path: string, body: Record<string, unknown>) {
   const response = await fetch(`/api/auth/${path}`, {
@@ -18,13 +18,17 @@ async function postAuth(path: string, body: Record<string, unknown>) {
   return json as { url?: string; redirect?: boolean };
 }
 
+async function clearStaffAccess() {
+  await fetch("/api/dashboard-access", { method: "DELETE" }).catch(() => undefined);
+}
+
 export default function LoginPage() {
   const [mode, setMode] = useState<AuthMode>("email");
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [mobile, setMobile] = useState("");
   const [otp, setOtp] = useState("");
+  const [signupOtpSent, setSignupOtpSent] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
@@ -50,11 +54,11 @@ export default function LoginPage() {
   }
 
   const isSignup = mode === "signup";
-  const heading = isSignup ? "Create account" : mode === "mobile" ? "Mobile sign in" : "Sign in";
+  const heading = isSignup ? "Create account" : "Sign in";
   const supporting =
     isSignup
-      ? "Register once, then complete KYC and manage rides from one place."
-      : "Book, verify, and track your rides securely.";
+      ? "Register once, then manage bookings from one place."
+      : "Book scooters, view rentals, and keep your account handy.";
 
   return (
     <div className="min-h-screen bg-[color:var(--color-paper)] px-4 py-12">
@@ -68,11 +72,10 @@ export default function LoginPage() {
         </div>
 
         <div className="rounded-lg border border-[color:var(--color-line)] bg-white p-5 shadow-[0_20px_60px_color-mix(in_oklch,var(--color-ink)_8%,transparent)]">
-          <div className="mb-5 grid grid-cols-3 gap-2 rounded-lg bg-[color:var(--color-paper-2)] p-1">
+          <div className="mb-5 grid grid-cols-2 gap-2 rounded-lg bg-[color:var(--color-paper-2)] p-1">
             {[
               { key: "email", label: "Sign in" },
-              { key: "signup", label: "Register" },
-              { key: "mobile", label: "Mobile" }
+              { key: "signup", label: "Register" }
             ].map((item) => (
               <button
                 key={item.key}
@@ -96,86 +99,82 @@ export default function LoginPage() {
             </label>
           )}
 
-          {mode !== "mobile" ? (
-            <>
-              <label className="mb-3 block">
-                <span className="mb-1.5 block text-xs font-bold text-[color:var(--color-muted)]">Email</span>
-                <input
-                  className="field-control"
-                  type="email"
-                  value={email}
-                  onChange={(event) => setEmail(event.target.value)}
-                  autoComplete={isSignup ? "email" : "username"}
-                />
-              </label>
-              <label className="mb-4 block">
-                <span className="mb-1.5 block text-xs font-bold text-[color:var(--color-muted)]">Password</span>
-                <input
-                  className="field-control"
-                  type="password"
-                  value={password}
-                  onChange={(event) => setPassword(event.target.value)}
-                  autoComplete={isSignup ? "new-password" : "current-password"}
-                />
-              </label>
-              <button
-                className="btn-primary w-full py-3"
-                disabled={loading}
-                onClick={() =>
-                  run(async () => {
-                    await postAuth(isSignup ? "sign-up/email" : "sign-in/email", {
-                      email,
-                      password,
-                      name: name || email,
-                      callbackURL: "/browse"
-                    });
-                    window.location.href = "/browse";
-                  })
+          <label className="mb-3 block">
+            <span className="mb-1.5 block text-xs font-bold text-[color:var(--color-muted)]">Email</span>
+            <input
+              className="field-control"
+              type="email"
+              value={email}
+              onChange={(event) => setEmail(event.target.value)}
+              autoComplete={isSignup ? "email" : "username"}
+            />
+          </label>
+          <label className="mb-4 block">
+            <span className="mb-1.5 block text-xs font-bold text-[color:var(--color-muted)]">Password</span>
+            <input
+              className="field-control"
+              type="password"
+              value={password}
+              onChange={(event) => setPassword(event.target.value)}
+              autoComplete={isSignup ? "new-password" : "current-password"}
+            />
+          </label>
+
+          {isSignup && signupOtpSent ? (
+            <label className="mb-4 block">
+              <span className="mb-1.5 block text-xs font-bold text-[color:var(--color-muted)]">Email verification code</span>
+              <input
+                className="field-control"
+                placeholder="6-digit code"
+                value={otp}
+                onChange={(event) => setOtp(event.target.value)}
+                inputMode="numeric"
+              />
+            </label>
+          ) : null}
+
+          <button
+            className="btn-primary w-full py-3"
+            disabled={loading}
+            onClick={() =>
+              run(async () => {
+                if (!isSignup) {
+                  await clearStaffAccess();
+                  await postAuth("sign-in/email", { email, password, callbackURL: "/browse" });
+                  window.location.href = "/browse";
+                  return;
                 }
-              >
-                {loading ? "Please wait..." : isSignup ? "Create account" : "Sign in"}
-              </button>
-            </>
-          ) : (
-            <>
-              <label className="mb-3 block">
-                <span className="mb-1.5 block text-xs font-bold text-[color:var(--color-muted)]">Mobile number</span>
-                <input className="field-control" value={mobile} onChange={(event) => setMobile(event.target.value)} />
-              </label>
-              <div className="mb-3 grid grid-cols-[1fr_auto] gap-2">
-                <input
-                  className="field-control"
-                  placeholder="OTP"
-                  value={otp}
-                  onChange={(event) => setOtp(event.target.value)}
-                />
-                <button
-                  className="btn-secondary px-4"
-                  disabled={loading}
-                  onClick={() =>
-                    run(async () => {
-                      await postAuth("phone-number/send-otp", { phoneNumber: mobile });
-                      setMessage("OTP sent. In local dev it is printed in the server console.");
-                    })
-                  }
-                >
-                  Send OTP
-                </button>
-              </div>
-              <button
-                className="btn-primary w-full py-3"
-                disabled={loading}
-                onClick={() =>
-                  run(async () => {
-                    await postAuth("phone-number/verify", { phoneNumber: mobile, code: otp });
-                    window.location.href = "/browse";
-                  })
+
+                if (!signupOtpSent) {
+                  await clearStaffAccess();
+                  await postAuth("sign-up/email", {
+                    email,
+                    password,
+                    name: name || email,
+                    callbackURL: "/browse"
+                  });
+                  await postAuth("email-otp/send-verification-otp", {
+                    email,
+                    type: "email-verification"
+                  });
+                  setSignupOtpSent(true);
+                  setMessage("We sent a verification code to your email.");
+                  return;
                 }
-              >
-                Verify and continue
-              </button>
-            </>
-          )}
+
+                await postAuth("email-otp/verify-email", { email, otp });
+                window.location.href = "/browse";
+              })
+            }
+          >
+            {loading
+              ? "Please wait..."
+              : isSignup
+                ? signupOtpSent
+                  ? "Verify and continue"
+                  : "Create account"
+                : "Sign in"}
+          </button>
 
           {mode === "email" && (
             <p className="mt-5 text-center text-sm text-[color:var(--color-copy)]">
@@ -183,7 +182,11 @@ export default function LoginPage() {
               <button
                 type="button"
                 className="font-bold text-[color:var(--color-ink)] underline underline-offset-4"
-                onClick={() => setMode("signup")}
+                onClick={() => {
+                  setMode("signup");
+                  setSignupOtpSent(false);
+                  setOtp("");
+                }}
               >
                 Register here
               </button>
@@ -195,7 +198,11 @@ export default function LoginPage() {
               <button
                 type="button"
                 className="font-bold text-[color:var(--color-ink)] underline underline-offset-4"
-                onClick={() => setMode("email")}
+                onClick={() => {
+                  setMode("email");
+                  setSignupOtpSent(false);
+                  setOtp("");
+                }}
               >
                 Sign in
               </button>
@@ -204,6 +211,21 @@ export default function LoginPage() {
 
           {message && <p className="mt-4 text-sm text-green-700">{message}</p>}
           {error && <p className="mt-4 text-sm text-red-600">{error}</p>}
+        </div>
+
+        <div className="mt-4 rounded-lg border border-[color:var(--color-line)] bg-white/70 p-4">
+          <div className="mb-3 flex items-center gap-2 text-sm font-bold text-[color:var(--color-ink)]">
+            <Icon name="settings" className="h-4 w-4" />
+            Staff dashboard access
+          </div>
+          <div className="grid grid-cols-2 gap-2">
+            <a href="/dashboard-access?role=admin" className="btn-secondary text-center">
+              Admin Login
+            </a>
+            <a href="/dashboard-access?role=partner" className="btn-secondary text-center">
+              Partner Login
+            </a>
+          </div>
         </div>
       </div>
     </div>

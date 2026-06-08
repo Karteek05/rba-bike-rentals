@@ -3,15 +3,18 @@
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { usePathname } from "next/navigation";
-import { Menu, X } from "lucide-react";
+import { LogOut, Menu, X } from "lucide-react";
 
 const NAV_LINKS = [
   { href: "/browse", label: "Browse Bikes" },
   { href: "/#how-it-works", label: "How It Works" },
-  { href: "/my-bookings", label: "My Bookings" },
-  { href: "/kyc", label: "KYC" },
-  { href: "/login", label: "Login / Register" }
+  { href: "/my-bookings", label: "My Bookings" }
 ];
+
+type AccountState = {
+  authenticated: boolean;
+  user: { name?: string; email?: string | null; role?: string } | null;
+};
 
 function isLinkActive(pathname: string, href: string) {
   if (href === "/#how-it-works") {
@@ -23,9 +26,40 @@ function isLinkActive(pathname: string, href: string) {
 export default function Navbar() {
   const pathname = usePathname();
   const [open, setOpen] = useState(false);
+  const [account, setAccount] = useState<AccountState | null>(null);
 
   useEffect(() => {
     setOpen(false);
+  }, [pathname]);
+
+  useEffect(() => {
+    let active = true;
+
+    async function refreshAccount() {
+      const isStaffSurface =
+        pathname.startsWith("/admin") ||
+        pathname.startsWith("/partner") ||
+        pathname.startsWith("/dashboard-access");
+
+      if (!isStaffSurface) {
+        await fetch("/api/dashboard-access", { method: "DELETE" }).catch(() => undefined);
+      }
+
+      const response = await fetch("/api/account/me", { cache: "no-store" });
+      return response.json();
+    }
+
+    refreshAccount()
+      .then((json) => {
+        if (active) setAccount(json?.data ?? { authenticated: false, user: null });
+      })
+      .catch(() => {
+        if (active) setAccount({ authenticated: false, user: null });
+      });
+
+    return () => {
+      active = false;
+    };
   }, [pathname]);
 
   useEffect(() => {
@@ -42,6 +76,15 @@ export default function Navbar() {
     document.addEventListener("keydown", handleEscape);
     return () => document.removeEventListener("keydown", handleEscape);
   }, [open]);
+
+  async function signOut() {
+    await fetch("/api/auth/sign-out", { method: "POST" });
+    setAccount({ authenticated: false, user: null });
+    window.location.href = "/";
+  }
+
+  const displayName = account?.user?.name || account?.user?.email || "Customer";
+  const initial = displayName.trim().charAt(0).toUpperCase() || "C";
 
   return (
     <header className="sticky top-0 z-50 border-b border-[color:var(--color-line)] bg-[color:var(--color-paper)]/95 backdrop-blur-md">
@@ -73,6 +116,39 @@ export default function Navbar() {
         </nav>
 
         <div className="flex items-center gap-2 sm:gap-3">
+          <Link
+            href="/dashboard-access"
+            className="nav-focus hidden rounded-full px-3.5 py-2 text-sm font-semibold text-[color:var(--color-copy)] hover:bg-white lg:inline-flex"
+          >
+            Staff Login
+          </Link>
+
+          {account?.authenticated ? (
+            <div className="hidden items-center gap-2 rounded-full border border-[color:var(--color-line)] bg-white px-3 py-1.5 md:flex">
+              <span className="flex h-8 w-8 items-center justify-center rounded-full bg-[color:var(--color-ink)] text-xs font-black text-white">
+                {initial}
+              </span>
+              <span className="max-w-[150px] truncate text-xs font-bold text-[color:var(--color-ink)]">
+                {displayName}
+              </span>
+              <button
+                type="button"
+                onClick={signOut}
+                className="nav-focus flex h-8 w-8 items-center justify-center rounded-full text-[color:var(--color-muted)] hover:bg-[color:var(--color-paper-2)] hover:text-[color:var(--color-ink)]"
+                aria-label="Sign out"
+              >
+                <LogOut className="h-4 w-4" />
+              </button>
+            </div>
+          ) : (
+            <Link
+              href="/login"
+              className="nav-focus hidden rounded-full px-3.5 py-2 text-sm font-semibold text-[color:var(--color-copy)] hover:bg-white md:inline-flex"
+            >
+              Login / Register
+            </Link>
+          )}
+
           <Link
             href="/browse"
             className="btn-primary hidden sm:inline-flex whitespace-nowrap"
@@ -112,6 +188,33 @@ export default function Navbar() {
                 </Link>
               );
             })}
+
+            {account?.authenticated ? (
+              <button
+                type="button"
+                className="nav-focus mt-2 flex items-center justify-between gap-3 rounded-lg bg-white px-4 py-3 text-sm font-semibold text-[color:var(--color-ink)]"
+                onClick={signOut}
+              >
+                <span className="truncate">Signed in as {displayName}</span>
+                <LogOut className="h-4 w-4 shrink-0" />
+              </button>
+            ) : (
+              <Link
+                href="/login"
+                className="nav-focus rounded-lg px-4 py-3 text-sm font-semibold text-[color:var(--color-ink)] hover:bg-[color:var(--color-paper-2)]"
+                onClick={() => setOpen(false)}
+              >
+                Login / Register
+              </Link>
+            )}
+
+            <Link
+              href="/dashboard-access"
+              className="nav-focus rounded-lg px-4 py-3 text-sm font-semibold text-[color:var(--color-ink)] hover:bg-[color:var(--color-paper-2)]"
+              onClick={() => setOpen(false)}
+            >
+              Staff Login
+            </Link>
 
             <Link
               href="/browse"

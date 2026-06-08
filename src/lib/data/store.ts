@@ -35,12 +35,9 @@ export const store: {
       name: "Rahul Customer",
       role: "customer",
       city: "bengaluru",
-      kyc_status: "verified",
+      kyc_status: "not_started",
       email: "rahul@example.com",
-      phone: "+919876543210",
-      pan_number: "ABCDE1234F",
-      date_of_birth: "1996-01-15",
-      cibil_consent_at: now
+      phone: "+919876543210"
     },
     {
       id: "cust_002",
@@ -73,44 +70,50 @@ export const store: {
       city: "bengaluru",
       category: "scooter",
       brand: "Honda",
-      model: "Activa 6G",
-      image_urls: ["/images/services/activa-6g.svg"],
+      model: "Activa 110",
+      image_urls: [
+        "https://edge.sitecorecloud.io/hondamotorc388f-hmsi8ece-prodb777-e813/media/Project/HONDA2WI/honda2wheelersindia/scooter/Activa-110/Accessories/activa110-accessories.png?h=810&iar=0&w=1920"
+      ],
       is_active: true,
       deposit_amount: 2000,
-      rate_per_hour: 120,
-      rate_per_day: 750,
-      rate_per_week: 4200,
-      rate_per_month: 15000
+      rate_per_hour: 0,
+      rate_per_day: 3200,
+      rate_per_week: 1600,
+      rate_per_month: 6000
     },
     {
       id: "veh_002",
       owner_id: "partner_001",
       city: "bengaluru",
-      category: "bike",
-      brand: "Yamaha",
-      model: "MT-15",
-      image_urls: ["/images/services/access-125.svg"],
+      category: "scooter",
+      brand: "Honda",
+      model: "Dio 110",
+      image_urls: [
+        "https://edge.sitecorecloud.io/hondamotorc388f-hmsi8ece-prodb777-e813/media/Project/HONDA2WI/honda2wheelersindia/scooter/dio-110/dio110-accessories.png?h=810&iar=0&w=1920"
+      ],
       is_active: true,
-      deposit_amount: 3000,
-      rate_per_hour: 180,
-      rate_per_day: 1200,
-      rate_per_week: 7000,
-      rate_per_month: 25000
+      deposit_amount: 2000,
+      rate_per_hour: 0,
+      rate_per_day: 3200,
+      rate_per_week: 1600,
+      rate_per_month: 6000
     },
     {
       id: "veh_003",
       owner_id: "partner_001",
       city: "bengaluru",
-      category: "ev_bike",
+      category: "scooter",
       brand: "TVS",
-      model: "iQube",
-      image_urls: ["/images/services/access-125.svg"],
+      model: "Jupiter 125",
+      image_urls: [
+        "https://www.tvsmotor.com/tvs-jupiter-125/-/media/TVS-Jupiter-125/Disc-SE/Price-Fold/dual-tone-website-copy-%281%29.webp"
+      ],
       is_active: true,
-      deposit_amount: 2500,
-      rate_per_hour: 140,
-      rate_per_day: 900,
-      rate_per_week: 5000,
-      rate_per_month: 17000
+      deposit_amount: 2000,
+      rate_per_hour: 0,
+      rate_per_day: 3250,
+      rate_per_week: 1625,
+      rate_per_month: 6500
     }
   ],
   bookings: [],

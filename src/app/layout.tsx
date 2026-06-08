@@ -6,7 +6,7 @@ import Footer from "@/app/components/Footer";
 export const metadata: Metadata = {
   title: "RBA Bike Rentals - Rent a Bike in Bengaluru",
   description:
-    "Affordable, insured, flexible bike rentals in Bengaluru. Book scooters, bikes, and EVs with KYC-first onboarding and transparent pricing.",
+    "Affordable scooter rentals in Bengaluru with weekly, 15-day, and monthly GST-inclusive packages.",
   keywords: "bike rental, bengaluru, scooter, two-wheeler, rbabikerentals"
 };
 
