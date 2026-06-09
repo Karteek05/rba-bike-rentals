@@ -228,32 +228,7 @@ export default function Navbar() {
               Staff Login
             </Link>
 
-            {account?.authenticated ? (
-              <button
-                type="button"
-                className="nav-focus mt-2 flex items-center justify-between gap-3 rounded-lg bg-white px-4 py-3 text-sm font-semibold text-[color:var(--color-ink)]"
-                onClick={signOut}
-              >
-                <span className="truncate">Signed in as {displayName}</span>
-                <LogOut className="h-4 w-4 shrink-0" />
-              </button>
-            ) : (
-              <Link
-                href="/login"
-                className="nav-focus rounded-lg px-4 py-3 text-sm font-semibold text-[color:var(--color-ink)] hover:bg-[color:var(--color-paper-2)]"
-                onClick={() => setOpen(false)}
-              >
-                Login / Register
-              </Link>
-            )}
 
-            <Link
-              href="/dashboard-access"
-              className="nav-focus rounded-lg px-4 py-3 text-sm font-semibold text-[color:var(--color-ink)] hover:bg-[color:var(--color-paper-2)]"
-              onClick={() => setOpen(false)}
-            >
-              Staff Login
-            </Link>
 
             <Link
               href="/browse"
