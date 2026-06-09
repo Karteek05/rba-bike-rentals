@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { useParams } from "next/navigation";
 import Icon from "../../components/Icon";
+import { authClient } from "@/lib/auth/auth-client";
 import {
   GST_INCLUSIVE_COPY,
   PACKAGE_PLANS,
@@ -23,9 +24,7 @@ type Quote = {
 };
 
 const API_HEADERS = {
-  "content-type": "application/json",
-  "x-user-id": "cust_001",
-  "x-role": "customer"
+  "Content-Type": "application/json"
 };
 
 const PACKAGE_TO_BUCKET: Record<PackageRateKey, "day" | "week" | "month"> = {
@@ -82,6 +81,7 @@ function QuoteRow({ label, value, highlight = false }: { label: string; value: s
 
 export default function BookPage() {
   const params = useParams();
+  const { data: session } = authClient.useSession();
   const vehicleId = typeof params.vehicleId === "string" ? params.vehicleId : "";
   const vehicle = PUBLIC_FLEET_BY_ID[vehicleId];
 
@@ -104,7 +104,7 @@ export default function BookPage() {
   const durationValue = PACKAGE_TO_VALUE[packageKey];
 
   const fetchQuote = useCallback(async () => {
-    if (!vehicle) return;
+    if (!vehicle || !session?.user?.id) return;
     setQuoteLoading(true);
     setQuoteError(null);
     try {
@@ -112,7 +112,7 @@ export default function BookPage() {
         method: "POST",
         headers: API_HEADERS,
         body: JSON.stringify({
-          user_id: "cust_001",
+          user_id: session?.user?.id,
           vehicle_id: vehicleId,
           city: "bengaluru",
           duration_bucket: durationBucket,
@@ -134,7 +134,7 @@ export default function BookPage() {
     } finally {
       setQuoteLoading(false);
     }
-  }, [coupon, durationBucket, durationValue, extraHelmet, vehicle, vehicleId]);
+  }, [coupon, durationBucket, durationValue, extraHelmet, vehicle, vehicleId, session?.user?.id]);
 
   useEffect(() => {
     const timer = setTimeout(fetchQuote, 250);
@@ -157,7 +157,7 @@ export default function BookPage() {
         method: "POST",
         headers: API_HEADERS,
         body: JSON.stringify({
-          user_id: "cust_001",
+          user_id: session?.user?.id,
           vehicle_id: vehicleId,
           city: "bengaluru",
           pickup_at: pickup,

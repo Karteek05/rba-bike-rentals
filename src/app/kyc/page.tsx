@@ -1,12 +1,10 @@
-﻿"use client";
+"use client";
 
 import { useRef, useState } from "react";
 import Icon from "../components/Icon";
 
 const API_HEADERS = {
-  "content-type": "application/json",
-  "x-user-id": "cust_001",
-  "x-role": "customer"
+  "Content-Type": "application/json"
 };
 
 type KycStatus = "idle" | "loading" | "pending" | "verified" | "failed";
@@ -105,7 +103,7 @@ export default function KycPage() {
       const res = await fetch("/api/kyc/digilocker/start", {
         method: "POST",
         headers: API_HEADERS,
-        body: JSON.stringify({ user_id: "cust_001" })
+        body: JSON.stringify({ user_id: session?.user?.id })
       });
       const json = await res.json();
 

@@ -1,8 +1,9 @@
-﻿"use client";
+"use client";
 
 import { useCallback, useEffect, useState } from "react";
 import Icon, { type IconName } from "../components/Icon";
 import { PUBLIC_FLEET_BY_ID } from "@/lib/fleet/catalog";
+import { authClient } from "@/lib/auth/auth-client";
 
 type Booking = {
   id: string;
@@ -44,9 +45,7 @@ declare global {
 }
 
 const API_HEADERS = {
-  "content-type": "application/json",
-  "x-user-id": "cust_001",
-  "x-role": "customer"
+  "Content-Type": "application/json"
 };
 
 const VEHICLE_NAMES: Record<string, string> = {
@@ -61,7 +60,7 @@ const VEHICLE_ICONS: Record<string, IconName> = {
   veh_003: "scooter"
 };
 
-const CUSTOMER_NAME = "Jagadeep";
+
 const UPI_ID = process.env.NEXT_PUBLIC_UPI_ID || "rbabikerentals@upi";
 
 const STATUS_STYLES: Record<string, string> = {
@@ -105,6 +104,9 @@ function getQrImageUrl(booking: Booking) {
 }
 
 export default function MyBookingsPage() {
+  const { data: session } = authClient.useSession();
+  const customerName = session?.user?.name || session?.user?.email || "Customer";
+  
   const [bookings, setBookings] = useState<Booking[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -284,7 +286,7 @@ export default function MyBookingsPage() {
           <div>
             <h1 className="text-4xl font-bold">My Bookings</h1>
             <p className="text-uber-body-gray text-sm mt-1">
-              {bookings.length} booking{bookings.length !== 1 ? "s" : ""} · Signed in as {CUSTOMER_NAME}
+              {bookings.length} booking{bookings.length !== 1 ? "s" : ""} · Signed in as {customerName}
             </p>
           </div>
           <a href="/browse" className="btn-primary text-sm py-2.5 px-5">

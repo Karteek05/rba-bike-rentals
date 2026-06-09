@@ -15,6 +15,67 @@ import type {
 
 const now = new Date().toISOString();
 
+const generateVehicles = (): Vehicle[] => {
+  const vehicles: Vehicle[] = [];
+  let idCounter = 1;
+
+  for (let i = 0; i < 15; i++) {
+    vehicles.push({
+      id: `veh_${String(idCounter++).padStart(3, "0")}`,
+      owner_id: "partner_001",
+      city: "bengaluru",
+      category: "scooter",
+      brand: "Honda",
+      model: "Activa 110",
+      image_urls: ["/images/services/activa-6g.svg"],
+      is_active: true,
+      deposit_amount: 2000,
+      rate_per_hour: 50,
+      rate_per_day: 250,
+      rate_per_week: 1600,
+      rate_per_month: 6000
+    });
+  }
+
+  for (let i = 0; i < 5; i++) {
+    vehicles.push({
+      id: `veh_${String(idCounter++).padStart(3, "0")}`,
+      owner_id: "partner_001",
+      city: "bengaluru",
+      category: "scooter",
+      brand: "Honda",
+      model: "Dio 110",
+      image_urls: ["/images/services/activa-6g.svg"],
+      is_active: true,
+      deposit_amount: 2000,
+      rate_per_hour: 50,
+      rate_per_day: 250,
+      rate_per_week: 1600,
+      rate_per_month: 6000
+    });
+  }
+
+  for (let i = 0; i < 5; i++) {
+    vehicles.push({
+      id: `veh_${String(idCounter++).padStart(3, "0")}`,
+      owner_id: "partner_001",
+      city: "bengaluru",
+      category: "scooter",
+      brand: "TVS",
+      model: "Jupiter 125",
+      image_urls: ["/images/services/access-125.svg"],
+      is_active: true,
+      deposit_amount: 2000,
+      rate_per_hour: 55,
+      rate_per_day: 260,
+      rate_per_week: 1625,
+      rate_per_month: 6500
+    });
+  }
+
+  return vehicles;
+};
+
 export const store: {
   users: User[];
   vehicles: Vehicle[];
@@ -63,59 +124,7 @@ export const store: {
       kyc_status: "verified"
     }
   ],
-  vehicles: [
-    {
-      id: "veh_001",
-      owner_id: "partner_001",
-      city: "bengaluru",
-      category: "scooter",
-      brand: "Honda",
-      model: "Activa 110",
-      image_urls: [
-        "https://edge.sitecorecloud.io/hondamotorc388f-hmsi8ece-prodb777-e813/media/Project/HONDA2WI/honda2wheelersindia/scooter/Activa-110/Accessories/activa110-accessories.png?h=810&iar=0&w=1920"
-      ],
-      is_active: true,
-      deposit_amount: 2000,
-      rate_per_hour: 0,
-      rate_per_day: 3200,
-      rate_per_week: 1600,
-      rate_per_month: 6000
-    },
-    {
-      id: "veh_002",
-      owner_id: "partner_001",
-      city: "bengaluru",
-      category: "scooter",
-      brand: "Honda",
-      model: "Dio 110",
-      image_urls: [
-        "https://edge.sitecorecloud.io/hondamotorc388f-hmsi8ece-prodb777-e813/media/Project/HONDA2WI/honda2wheelersindia/scooter/dio-110/dio110-accessories.png?h=810&iar=0&w=1920"
-      ],
-      is_active: true,
-      deposit_amount: 2000,
-      rate_per_hour: 0,
-      rate_per_day: 3200,
-      rate_per_week: 1600,
-      rate_per_month: 6000
-    },
-    {
-      id: "veh_003",
-      owner_id: "partner_001",
-      city: "bengaluru",
-      category: "scooter",
-      brand: "TVS",
-      model: "Jupiter 125",
-      image_urls: [
-        "https://www.tvsmotor.com/tvs-jupiter-125/-/media/TVS-Jupiter-125/Disc-SE/Price-Fold/dual-tone-website-copy-%281%29.webp"
-      ],
-      is_active: true,
-      deposit_amount: 2000,
-      rate_per_hour: 0,
-      rate_per_day: 3250,
-      rate_per_week: 1625,
-      rate_per_month: 6500
-    }
-  ],
+  vehicles: generateVehicles(),
   bookings: [],
   kycRecords: [
     {
