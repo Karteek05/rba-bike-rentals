@@ -102,7 +102,8 @@ export default function KycPage() {
     try {
       const res = await fetch("/api/kyc/digilocker/start", {
         method: "POST",
-        headers: API_HEADERS
+        headers: API_HEADERS,
+        body: JSON.stringify({ user_id: session?.user?.id })
       });
       const json = await res.json();
 

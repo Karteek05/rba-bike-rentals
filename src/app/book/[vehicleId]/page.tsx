@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { useParams } from "next/navigation";
 import Icon from "../../components/Icon";
+import { authClient } from "@/lib/auth/auth-client";
 import {
   GST_INCLUSIVE_COPY,
   PACKAGE_PLANS,
@@ -80,6 +81,7 @@ function QuoteRow({ label, value, highlight = false }: { label: string; value: s
 
 export default function BookPage() {
   const params = useParams();
+  const { data: session } = authClient.useSession();
   const vehicleId = typeof params.vehicleId === "string" ? params.vehicleId : "";
   const vehicle = PUBLIC_FLEET_BY_ID[vehicleId];
 
@@ -110,6 +112,7 @@ export default function BookPage() {
         method: "POST",
         headers: API_HEADERS,
         body: JSON.stringify({
+          user_id: session?.user?.id,
           vehicle_id: vehicleId,
           city: "bengaluru",
           duration_bucket: durationBucket,
@@ -154,6 +157,7 @@ export default function BookPage() {
         method: "POST",
         headers: API_HEADERS,
         body: JSON.stringify({
+          user_id: session?.user?.id,
           vehicle_id: vehicleId,
           city: "bengaluru",
           pickup_at: pickup,
