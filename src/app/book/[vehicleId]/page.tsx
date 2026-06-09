@@ -104,7 +104,7 @@ export default function BookPage() {
   const durationValue = PACKAGE_TO_VALUE[packageKey];
 
   const fetchQuote = useCallback(async () => {
-    if (!vehicle) return;
+    if (!vehicle || !session?.user?.id) return;
     setQuoteLoading(true);
     setQuoteError(null);
     try {
@@ -134,7 +134,7 @@ export default function BookPage() {
     } finally {
       setQuoteLoading(false);
     }
-  }, [coupon, durationBucket, durationValue, extraHelmet, vehicle, vehicleId]);
+  }, [coupon, durationBucket, durationValue, extraHelmet, vehicle, vehicleId, session?.user?.id]);
 
   useEffect(() => {
     const timer = setTimeout(fetchQuote, 250);
