@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import Icon, { type IconName } from "../components/Icon";
+import { PUBLIC_FLEET_BY_ID } from "@/lib/fleet/catalog";
 
 type Booking = {
   id: string;
@@ -9,6 +10,7 @@ type Booking = {
   vehicle_id: string;
   pickup_at: string;
   drop_at: string;
+  pickup_zone?: string | null;
   quote: {
     total_payable: number;
     base_amount?: number;
@@ -17,6 +19,30 @@ type Booking = {
   cancel_reason?: string;
 };
 
+type NotificationItem = {
+  id: string;
+  template_key: string;
+  payload: Record<string, unknown>;
+  created_at: string;
+};
+
+type RazorpayCheckout = new (options: {
+  key: string;
+  amount: number;
+  currency: string;
+  order_id: string;
+  name: string;
+  description: string;
+  handler: () => void;
+  prefill?: { name?: string; email?: string; contact?: string };
+}) => { open: () => void };
+
+declare global {
+  interface Window {
+    Razorpay?: RazorpayCheckout;
+  }
+}
+
 const API_HEADERS = {
   "content-type": "application/json",
   "x-user-id": "cust_001",
@@ -24,16 +50,19 @@ const API_HEADERS = {
 };
 
 const VEHICLE_NAMES: Record<string, string> = {
-  veh_001: "Honda Activa 6G",
-  veh_002: "Yamaha MT-15",
-  veh_003: "TVS iQube"
+  veh_001: "Honda Activa 110",
+  veh_002: "Honda Dio 110",
+  veh_003: "TVS Jupiter 125"
 };
 
 const VEHICLE_ICONS: Record<string, IconName> = {
   veh_001: "scooter",
-  veh_002: "bike",
-  veh_003: "ev"
+  veh_002: "scooter",
+  veh_003: "scooter"
 };
+
+const CUSTOMER_NAME = "Jagadeep";
+const UPI_ID = process.env.NEXT_PUBLIC_UPI_ID || "rbabikerentals@upi";
 
 const STATUS_STYLES: Record<string, string> = {
   confirmed: "bg-black text-white",
@@ -60,6 +89,21 @@ function StatusBadge({ status }: { status: string }) {
   return <span className={`badge ${cls} capitalize text-xs`}>{status.replace(/_/g, " ")}</span>;
 }
 
+function getUpiLink(booking: Booking) {
+  const params = new URLSearchParams({
+    pa: UPI_ID,
+    pn: "RBA Bike Rentals",
+    am: booking.quote.total_payable.toFixed(2),
+    cu: "INR",
+    tn: `RBA booking ${booking.id}`
+  });
+  return `upi://pay?${params.toString()}`;
+}
+
+function getQrImageUrl(booking: Booking) {
+  return `https://api.qrserver.com/v1/create-qr-code/?size=220x220&margin=12&data=${encodeURIComponent(getUpiLink(booking))}`;
+}
+
 export default function MyBookingsPage() {
   const [bookings, setBookings] = useState<Booking[]>([]);
   const [loading, setLoading] = useState(true);
@@ -67,6 +111,8 @@ export default function MyBookingsPage() {
   const [actionLoading, setActionLoading] = useState<string | null>(null);
   const [successMsg, setSuccessMsg] = useState<string | null>(null);
   const [tab, setTab] = useState("all");
+  const [notifications, setNotifications] = useState<NotificationItem[]>([]);
+  const [qrBookingId, setQrBookingId] = useState<string | null>(null);
 
   const showSuccess = (msg: string) => {
     setSuccessMsg(msg);
@@ -90,9 +136,82 @@ export default function MyBookingsPage() {
     }
   }, []);
 
+  const fetchNotifications = useCallback(async () => {
+    try {
+      const res = await fetch("/api/notifications?limit=5", { headers: API_HEADERS });
+      const json = await res.json();
+      if (res.ok && json.ok) {
+        setNotifications(json.data.items);
+      }
+    } catch {
+      setNotifications([]);
+    }
+  }, []);
+
   useEffect(() => {
     fetchBookings();
-  }, [fetchBookings]);
+    fetchNotifications();
+  }, [fetchBookings, fetchNotifications]);
+
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    if (params.get("pay")) {
+      setTab("payment_pending");
+    }
+  }, []);
+
+  function loadRazorpayScript() {
+    return new Promise<boolean>((resolve) => {
+      if (window.Razorpay) {
+        resolve(true);
+        return;
+      }
+      const script = document.createElement("script");
+      script.src = "https://checkout.razorpay.com/v1/checkout.js";
+      script.onload = () => resolve(true);
+      script.onerror = () => resolve(false);
+      document.body.appendChild(script);
+    });
+  }
+
+  async function handlePay(booking: Booking) {
+    setActionLoading(`pay-${booking.id}`);
+    setError(null);
+    try {
+      const res = await fetch("/api/payments/order", {
+        method: "POST",
+        headers: API_HEADERS,
+        body: JSON.stringify({ booking_id: booking.id })
+      });
+      const json = await res.json();
+      if (!res.ok || !json.ok) {
+        setQrBookingId(booking.id);
+        showSuccess("Razorpay checkout is not ready. Scan the QR below to pay this booking amount.");
+        return;
+      }
+      const order = json.data.order;
+      const loaded = await loadRazorpayScript();
+      if (!loaded || !window.Razorpay) {
+        setQrBookingId(booking.id);
+        showSuccess("Razorpay checkout could not load in this browser. Scan the QR below to pay.");
+        return;
+      }
+      new window.Razorpay({
+        key: order.key_id,
+        amount: order.amount,
+        currency: order.currency,
+        order_id: order.order_id,
+        name: "RBA Bike Rentals",
+        description: booking.id,
+        handler: () => showSuccess("Payment submitted. Confirmation appears after Razorpay webhook capture.")
+      }).open();
+    } catch {
+      setQrBookingId(booking.id);
+      showSuccess("Payment checkout is unavailable right now. Scan the QR below to pay.");
+    } finally {
+      setActionLoading(null);
+    }
+  }
 
   async function handleCancel(id: string) {
     if (!confirm("Are you sure you want to cancel this booking? Cancellation charges may apply.")) return;
@@ -147,6 +266,9 @@ export default function MyBookingsPage() {
 
   const TABS = [
     { key: "all", label: "All" },
+    { key: "pending_kyc", label: "Pending" },
+    { key: "admin_review", label: "Review" },
+    { key: "payment_pending", label: "Pay" },
     { key: "confirmed", label: "Confirmed" },
     { key: "ongoing", label: "Ongoing" },
     { key: "completed", label: "Completed" },
@@ -162,7 +284,7 @@ export default function MyBookingsPage() {
           <div>
             <h1 className="text-4xl font-bold">My Bookings</h1>
             <p className="text-uber-body-gray text-sm mt-1">
-              {bookings.length} booking{bookings.length !== 1 ? "s" : ""} · User: cust_001
+              {bookings.length} booking{bookings.length !== 1 ? "s" : ""} · Signed in as {CUSTOMER_NAME}
             </p>
           </div>
           <a href="/browse" className="btn-primary text-sm py-2.5 px-5">
@@ -187,6 +309,20 @@ export default function MyBookingsPage() {
             <button onClick={() => setError(null)} className="text-red-400 hover:text-red-600" aria-label="Dismiss error">
               <Icon name="close" className="w-4 h-4" />
             </button>
+          </div>
+        )}
+
+        {notifications.length > 0 && (
+          <div className="mb-6 bg-uber-chip-gray rounded-xl p-4">
+            <div className="text-xs font-semibold uppercase text-uber-body-gray mb-2">Latest updates</div>
+            <div className="grid gap-2">
+              {notifications.map((item) => (
+                <div key={item.id} className="text-sm flex items-center justify-between gap-3">
+                  <span className="font-medium">{item.template_key.replace(/_/g, " ")}</span>
+                  <span className="text-xs text-uber-muted-gray">{fmt(item.created_at)}</span>
+                </div>
+              ))}
+            </div>
           </div>
         )}
 
@@ -232,18 +368,33 @@ export default function MyBookingsPage() {
           <div className="flex flex-col gap-4">
             {filtered.map((booking) => {
               const isActionable = ["confirmed", "ongoing", "extended"].includes(booking.status);
-              const isCancellable = ["confirmed", "pending_kyc", "payment_pending"].includes(booking.status);
+              const isCancellable = ["confirmed", "pending_kyc", "admin_review", "payment_pending"].includes(booking.status);
               const actCancel = actionLoading === `cancel-${booking.id}`;
               const actExtend = actionLoading === `extend-${booking.id}`;
+              const actPay = actionLoading === `pay-${booking.id}`;
               const vIcon = VEHICLE_ICONS[booking.vehicle_id] ?? "scooter";
               const vName = VEHICLE_NAMES[booking.vehicle_id] ?? booking.vehicle_id;
+              const vehicle = PUBLIC_FLEET_BY_ID[booking.vehicle_id];
 
               return (
                 <div key={booking.id} className="card border border-black/5 hover:shadow-card-md transition-shadow">
                   <div className="p-5 sm:p-6">
                     <div className="flex flex-col sm:flex-row gap-4">
-                      <div className="w-20 h-20 bg-uber-chip-gray rounded-lg flex items-center justify-center text-black flex-shrink-0">
-                        <Icon name={vIcon} className="w-10 h-10" />
+                      <div className="relative h-28 w-40 flex-shrink-0 overflow-hidden rounded-lg bg-uber-chip-gray">
+                        {vehicle ? (
+                          <img
+                            src={vehicle.image}
+                            alt={vehicle.imageAlt}
+                            className="h-full w-full object-contain p-2"
+                            onError={(event) => {
+                              event.currentTarget.src = vehicle.fallbackImage;
+                            }}
+                          />
+                        ) : (
+                          <div className="flex h-full w-full items-center justify-center text-black">
+                            <Icon name={vIcon} className="w-10 h-10" />
+                          </div>
+                        )}
                       </div>
 
                       <div className="flex-1 min-w-0">
@@ -265,6 +416,10 @@ export default function MyBookingsPage() {
                             <span className="text-xs text-uber-body-gray block">Total</span>
                             <span className="font-bold text-black">₹{booking.quote.total_payable.toLocaleString()}</span>
                           </div>
+                          <div>
+                            <span className="text-xs text-uber-body-gray block">Pickup zone</span>
+                            <span className="font-medium">{booking.pickup_zone ?? "Bengaluru"}</span>
+                          </div>
                         </div>
 
                         <div className="text-xs text-uber-muted-gray font-mono">ID: {booking.id}</div>
@@ -274,15 +429,23 @@ export default function MyBookingsPage() {
 
                     {(isActionable || isCancellable) && (
                       <div className="mt-4 pt-4 border-t border-black/5 flex gap-3 flex-wrap">
-                        {isActionable && (
-                          <button
-                            onClick={() => handleExtend(booking.id)}
-                            disabled={actExtend}
-                            className="btn-primary text-sm py-2 px-5 disabled:opacity-50"
-                          >
-                            {actExtend ? "Extending..." : "Extend +1 Day"}
-                          </button>
-                        )}
+                      {(isActionable || booking.status === "payment_pending") && (
+                        <button
+                          onClick={() =>
+                            booking.status === "payment_pending" ? handlePay(booking) : handleExtend(booking.id)
+                          }
+                          disabled={booking.status === "payment_pending" ? actPay : actExtend}
+                          className="btn-primary text-sm py-2 px-5 disabled:opacity-50"
+                        >
+                          {booking.status === "payment_pending"
+                            ? actPay
+                              ? "Opening..."
+                              : "Pay Now"
+                            : actExtend
+                              ? "Extending..."
+                              : "Extend +1 Day"}
+                        </button>
+                      )}
                         {isCancellable && (
                           <button
                             onClick={() => handleCancel(booking.id)}
@@ -294,6 +457,40 @@ export default function MyBookingsPage() {
                         )}
                       </div>
                     )}
+
+                    {booking.status === "payment_pending" && qrBookingId === booking.id ? (
+                      <div className="mt-4 grid gap-4 rounded-lg border border-[color:var(--color-line)] bg-[color:var(--color-paper)] p-4 sm:grid-cols-[180px_minmax(0,1fr)]">
+                        <div className="rounded-lg border border-[color:var(--color-line)] bg-white p-3">
+                          <img
+                            src={getQrImageUrl(booking)}
+                            alt={`UPI QR for booking ${booking.id}`}
+                            className="mx-auto h-36 w-36 object-contain sm:h-40 sm:w-40"
+                          />
+                        </div>
+                        <div className="min-w-0">
+                          <div className="mb-1 text-xs font-bold uppercase text-[color:var(--color-muted)]">
+                            UPI payment
+                          </div>
+                          <h4 className="text-lg font-black text-[color:var(--color-ink)]">Scan to pay ₹{booking.quote.total_payable.toLocaleString()}</h4>
+                          <p className="mt-1 text-sm leading-relaxed text-[color:var(--color-copy)]">
+                            Use this QR only after the admin has approved the booking. Keep the booking ID in the payment note.
+                          </p>
+                          <div className="mt-3 grid gap-2 text-sm">
+                            <div className="flex items-center justify-between gap-3 rounded-md bg-white px-3 py-2">
+                              <span className="text-[color:var(--color-muted)]">UPI ID</span>
+                              <span className="truncate font-bold text-[color:var(--color-ink)]">{UPI_ID}</span>
+                            </div>
+                            <div className="flex items-center justify-between gap-3 rounded-md bg-white px-3 py-2">
+                              <span className="text-[color:var(--color-muted)]">Booking ID</span>
+                              <span className="truncate font-mono text-xs font-bold text-[color:var(--color-ink)]">{booking.id}</span>
+                            </div>
+                          </div>
+                          <a href={getUpiLink(booking)} className="btn-primary mt-4 inline-flex text-sm">
+                            Open UPI App
+                          </a>
+                        </div>
+                      </div>
+                    ) : null}
                   </div>
                 </div>
               );

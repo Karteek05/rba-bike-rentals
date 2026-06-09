@@ -2,25 +2,17 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { useParams } from "next/navigation";
-import Icon, { type IconName } from "../../components/Icon";
-
-type Vehicle = {
-  id: string;
-  brand: string;
-  model: string;
-  category: string;
-  rate_per_hour: number;
-  rate_per_day: number;
-  rate_per_week: number;
-  rate_per_month: number;
-  deposit_amount: number;
-  city: string;
-  image_url?: string;
-};
+import Icon from "../../components/Icon";
+import {
+  GST_INCLUSIVE_COPY,
+  PACKAGE_PLANS,
+  PUBLIC_FLEET_BY_ID,
+  getPackageRate,
+  type PackageRateKey
+} from "@/lib/fleet/catalog";
 
 type Quote = {
   base_amount: number;
-  duration_amount: number;
   addon_amount: number;
   coupon_discount: number;
   deposit_amount: number;
@@ -30,92 +22,58 @@ type Quote = {
   excess_km_rate: number;
 };
 
-const VEHICLES: Record<string, Vehicle> = {
-  veh_001: {
-    id: "veh_001",
-    brand: "Honda",
-    model: "Activa 6G",
-    category: "scooter",
-    rate_per_hour: 120,
-    rate_per_day: 750,
-    rate_per_week: 4200,
-    rate_per_month: 15000,
-    deposit_amount: 2000,
-    city: "bengaluru",
-    image_url: "/images/services/activa-6g.svg"
-  },
-  veh_002: {
-    id: "veh_002",
-    brand: "Yamaha",
-    model: "MT-15",
-    category: "bike",
-    rate_per_hour: 180,
-    rate_per_day: 1200,
-    rate_per_week: 7000,
-    rate_per_month: 25000,
-    deposit_amount: 3000,
-    city: "bengaluru"
-  },
-  veh_003: {
-    id: "veh_003",
-    brand: "TVS",
-    model: "iQube",
-    category: "ev_bike",
-    rate_per_hour: 140,
-    rate_per_day: 900,
-    rate_per_week: 5000,
-    rate_per_month: 17000,
-    deposit_amount: 2500,
-    city: "bengaluru",
-    image_url: "/images/services/access-125.svg"
-  }
-};
-
-const DURATION_OPTIONS = [
-  { key: "hour", label: "Hourly", rateKey: "rate_per_hour", unit: "hr" },
-  { key: "day", label: "Daily", rateKey: "rate_per_day", unit: "day" },
-  { key: "week", label: "Weekly", rateKey: "rate_per_week", unit: "wk" },
-  { key: "month", label: "Monthly", rateKey: "rate_per_month", unit: "mo" }
-] as const;
-
-type DurationBucket = "hour" | "day" | "week" | "month";
-
 const API_HEADERS = {
   "content-type": "application/json",
   "x-user-id": "cust_001",
   "x-role": "customer"
 };
 
-const CATEGORY_ICONS: Record<string, IconName> = {
-  scooter: "scooter",
-  bike: "bike",
-  ev_bike: "ev"
+const PACKAGE_TO_BUCKET: Record<PackageRateKey, "day" | "week" | "month"> = {
+  rate_per_week: "week",
+  rate_per_day: "day",
+  rate_per_month: "month"
+};
+
+const PACKAGE_TO_VALUE: Record<PackageRateKey, number> = {
+  rate_per_week: 1,
+  rate_per_day: 15,
+  rate_per_month: 1
+};
+
+const PACKAGE_TO_HOURS: Record<PackageRateKey, number> = {
+  rate_per_week: 24 * 7,
+  rate_per_day: 24 * 15,
+  rate_per_month: 24 * 30
 };
 
 const SPECS: Record<string, Array<{ label: string; value: string }>> = {
   veh_001: [
-    { label: "Engine", value: "109.51 cc, BS6" },
-    { label: "Mileage", value: "~60 km/l" },
-    { label: "Top Speed", value: "~80 km/h" },
+    { label: "Engine", value: "110 cc" },
+    { label: "Stock", value: "~15 units" },
+    { label: "Package", value: "From Rs. 1,600" },
     { label: "Fuel", value: "Petrol" }
   ],
   veh_002: [
-    { label: "Engine", value: "155 cc, liquid-cooled" },
-    { label: "Power", value: "18.5 bhp" },
-    { label: "Top Speed", value: "~135 km/h" },
+    { label: "Engine", value: "110 cc" },
+    { label: "Stock", value: "~5 units" },
+    { label: "Package", value: "From Rs. 1,600" },
     { label: "Fuel", value: "Petrol" }
   ],
   veh_003: [
-    { label: "Battery", value: "2.25 kWh" },
-    { label: "Range", value: "~75 km/charge" },
-    { label: "Top Speed", value: "~78 km/h" },
-    { label: "Fuel", value: "Electric" }
+    { label: "Engine", value: "125 cc" },
+    { label: "Stock", value: "~5 units" },
+    { label: "Package", value: "From Rs. 1,625" },
+    { label: "Fuel", value: "Petrol" }
   ]
 };
 
+function rupees(value: number) {
+  return `Rs. ${value.toLocaleString("en-IN")}`;
+}
+
 function QuoteRow({ label, value, highlight = false }: { label: string; value: string; highlight?: boolean }) {
   return (
-    <div className={`flex justify-between py-2.5 text-sm ${highlight ? "font-bold text-black border-t border-black/10 mt-1 pt-3" : "text-uber-body-gray"}`}>
+    <div className={`flex justify-between py-2.5 text-sm ${highlight ? "mt-1 border-t border-black/10 pt-3 font-bold text-black" : "text-uber-body-gray"}`}>
       <span>{label}</span>
       <span className="text-black">{value}</span>
     </div>
@@ -125,19 +83,25 @@ function QuoteRow({ label, value, highlight = false }: { label: string; value: s
 export default function BookPage() {
   const params = useParams();
   const vehicleId = typeof params.vehicleId === "string" ? params.vehicleId : "";
-  const vehicle = VEHICLES[vehicleId];
+  const vehicle = PUBLIC_FLEET_BY_ID[vehicleId];
 
-  const [durationBucket, setDurationBucket] = useState<DurationBucket>("day");
-  const [durationValue, setDurationValue] = useState(1);
+  const [packageKey, setPackageKey] = useState<PackageRateKey>("rate_per_week");
   const [extraHelmet, setExtraHelmet] = useState(false);
-  const [doorstepDelivery, setDoorstepDelivery] = useState(false);
   const [coupon, setCoupon] = useState("");
+  const [pickupZone, setPickupZone] = useState("Indiranagar");
+  const [pickupAddress, setPickupAddress] = useState("");
+  const [legalName, setLegalName] = useState("");
+  const [profileEmail, setProfileEmail] = useState("");
+  const [mobile, setMobile] = useState("");
   const [quote, setQuote] = useState<Quote | null>(null);
   const [quoteLoading, setQuoteLoading] = useState(false);
   const [quoteError, setQuoteError] = useState<string | null>(null);
   const [bookingLoading, setBookingLoading] = useState(false);
   const [bookingId, setBookingId] = useState<string | null>(null);
   const [bookingError, setBookingError] = useState<string | null>(null);
+
+  const durationBucket = PACKAGE_TO_BUCKET[packageKey];
+  const durationValue = PACKAGE_TO_VALUE[packageKey];
 
   const fetchQuote = useCallback(async () => {
     if (!vehicle) return;
@@ -170,25 +134,23 @@ export default function BookPage() {
     } finally {
       setQuoteLoading(false);
     }
-  }, [vehicle, vehicleId, durationBucket, durationValue, extraHelmet, coupon]);
+  }, [coupon, durationBucket, durationValue, extraHelmet, vehicle, vehicleId]);
 
   useEffect(() => {
-    const timer = setTimeout(fetchQuote, 300);
+    const timer = setTimeout(fetchQuote, 250);
     return () => clearTimeout(timer);
   }, [fetchQuote]);
 
   async function handleReserve() {
+    if (!legalName.trim() || !profileEmail.trim() || !mobile.trim()) {
+      setBookingError("Name, email, and mobile are required.");
+      return;
+    }
+
     setBookingLoading(true);
     setBookingError(null);
-    const now = Date.now();
-    const hoursMap: Record<DurationBucket, number> = {
-      hour: durationValue,
-      day: durationValue * 24,
-      week: durationValue * 168,
-      month: durationValue * 720
-    };
-    const pickup = new Date(now + 3_600_000).toISOString();
-    const drop = new Date(now + 3_600_000 + hoursMap[durationBucket] * 3_600_000).toISOString();
+    const pickup = new Date(Date.now() + 3_600_000).toISOString();
+    const drop = new Date(Date.now() + 3_600_000 + PACKAGE_TO_HOURS[packageKey] * 3_600_000).toISOString();
 
     try {
       const res = await fetch("/api/bookings", {
@@ -200,12 +162,19 @@ export default function BookPage() {
           city: "bengaluru",
           pickup_at: pickup,
           drop_at: drop,
+          pickup_zone: pickupZone,
+          pickup_address: pickupAddress || pickupZone,
           duration_bucket: durationBucket,
           duration_value: durationValue,
           km_limit_bucket: durationBucket,
-          km_limit_value: 120,
+          km_limit_value: quote?.km_included ?? 0,
           extra_helmet_count: extraHelmet ? 1 : 0,
-          coupon_code: coupon || undefined
+          coupon_code: coupon || undefined,
+          customer_profile: {
+            legal_name: legalName,
+            email: profileEmail,
+            mobile
+          }
         })
       });
       const json = await res.json();
@@ -223,12 +192,12 @@ export default function BookPage() {
 
   if (!vehicle) {
     return (
-      <div className="max-w-container mx-auto px-4 sm:px-6 py-24 text-center">
-        <div className="w-16 h-16 rounded-full bg-black/5 flex items-center justify-center mx-auto mb-4">
-          <Icon name="search" className="w-8 h-8 text-black/60" />
+      <div className="mx-auto max-w-container px-4 py-24 text-center sm:px-6">
+        <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-black/5">
+          <Icon name="search" className="h-8 w-8 text-black/60" />
         </div>
-        <h1 className="text-3xl font-bold mb-2">Vehicle not found</h1>
-        <p className="text-uber-body-gray mb-6">That vehicle ID does not exist.</p>
+        <h1 className="mb-2 text-3xl font-bold">Vehicle not found</h1>
+        <p className="mb-6 text-uber-body-gray">That vehicle is not in the current rental fleet.</p>
         <a href="/browse" className="btn-primary">
           Back to Browse
         </a>
@@ -238,26 +207,23 @@ export default function BookPage() {
 
   if (bookingId) {
     return (
-      <div className="min-h-screen bg-white flex items-center justify-center px-4">
-        <div className="text-center max-w-md">
-          <div className="w-20 h-20 rounded-full bg-black text-white flex items-center justify-center mx-auto mb-6">
-            <Icon name="checkCircle" className="w-10 h-10" />
+      <div className="flex min-h-screen items-center justify-center bg-white px-4">
+        <div className="max-w-md text-center">
+          <div className="mx-auto mb-6 flex h-20 w-20 items-center justify-center rounded-full bg-black text-white">
+            <Icon name="checkCircle" className="h-10 w-10" />
           </div>
-          <h1 className="text-4xl font-bold mb-3">Booking Confirmed</h1>
-          <p className="text-uber-body-gray mb-2 text-sm">Your booking is confirmed. Keep this ID for pickup verification.</p>
-          <div className="bg-uber-chip-gray rounded-xl px-6 py-4 my-6 font-mono text-lg font-bold tracking-widest break-all">
+          <h1 className="mb-3 text-4xl font-bold">Request Submitted</h1>
+          <p className="mb-2 text-sm text-uber-body-gray">
+            We received your booking request. The team will confirm availability and payment details.
+          </p>
+          <div className="my-6 break-all rounded-xl bg-uber-chip-gray px-6 py-4 font-mono text-lg font-bold tracking-widest">
             {bookingId}
           </div>
-          {quote && (
-            <p className="text-uber-body-gray text-sm mb-6">
-              Total paid: <strong className="text-black">₹{quote.total_payable.toLocaleString()}</strong>
-            </p>
-          )}
-          <div className="flex flex-col sm:flex-row gap-3 justify-center">
-            <a href="/my-bookings" className="btn-primary py-3 px-6">
+          <div className="flex flex-col justify-center gap-3 sm:flex-row">
+            <a href="/my-bookings" className="btn-primary px-6 py-3">
               View My Bookings
             </a>
-            <a href="/browse" className="btn-secondary py-3 px-6">
+            <a href="/browse" className="btn-secondary px-6 py-3">
               Browse More
             </a>
           </div>
@@ -266,241 +232,218 @@ export default function BookPage() {
     );
   }
 
-  const icon = CATEGORY_ICONS[vehicle.category] ?? "scooter";
   const specs = SPECS[vehicleId] ?? [];
 
   return (
     <div className="min-h-screen bg-white">
       <div className="border-b border-black/10">
-        <div className="max-w-container mx-auto px-4 sm:px-6 py-4 text-sm text-uber-body-gray">
-          <a href="/browse" className="hover:text-black transition-colors">
+        <div className="mx-auto max-w-container px-4 py-4 text-sm text-uber-body-gray sm:px-6">
+          <a href="/browse" className="transition-colors hover:text-black">
             Back to Browse
           </a>
           <span className="mx-2">/</span>
-          <span className="text-black font-medium">
+          <span className="font-medium text-black">
             {vehicle.brand} {vehicle.model}
           </span>
         </div>
       </div>
 
-      <div className="max-w-container mx-auto px-4 sm:px-6 py-8 sm:py-10">
-        <div className="grid lg:grid-cols-[1fr_420px] gap-10">
+      <div className="mx-auto max-w-container px-4 py-8 sm:px-6 sm:py-10">
+        <div className="grid gap-10 lg:grid-cols-[1fr_420px]">
           <div>
-            <div className="bg-uber-chip-gray rounded-xl aspect-[16/9] flex flex-col items-center justify-center gap-3 mb-8 relative p-6 overflow-hidden">
-              {vehicle.image_url ? (
-                <img src={vehicle.image_url} alt={`${vehicle.brand} ${vehicle.model}`} className="w-full h-full object-contain drop-shadow-md z-10" />
-              ) : (
-                <span className="w-24 h-24 rounded-full bg-white border border-black/10 flex items-center justify-center text-black z-10">
-                  <Icon name={icon} className="w-12 h-12" />
-                </span>
-              )}
-              <span className="badge bg-black text-white text-xs inline-flex items-center gap-1.5 absolute top-4 right-4 z-20">
-                <Icon name="location" className="w-3 h-3" />
-                Bengaluru
-              </span>
+            <div className="mb-8 overflow-hidden rounded-xl bg-uber-chip-gray">
+              <img
+                src={vehicle.image}
+                alt={vehicle.imageAlt}
+                className="h-full max-h-[430px] w-full object-contain"
+                onError={(event) => {
+                  event.currentTarget.src = vehicle.fallbackImage;
+                }}
+              />
             </div>
 
-            <h1 className="text-4xl font-bold mb-1">
+            <h1 className="mb-1 text-4xl font-bold">
               {vehicle.brand} {vehicle.model}
             </h1>
-            <p className="text-uber-body-gray capitalize mb-6">{vehicle.category.replace("_", " ")}</p>
+            <p className="mb-6 text-uber-body-gray capitalize">Scooter - {vehicle.engine}</p>
 
             {specs.length > 0 && (
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-8">
+              <div className="mb-8 grid grid-cols-1 gap-4 sm:grid-cols-2">
                 {specs.map((s) => (
-                  <div key={s.label} className="bg-uber-chip-gray rounded-lg px-4 py-3">
-                    <div className="text-xs text-uber-body-gray mb-0.5">{s.label}</div>
-                    <div className="font-bold text-sm">{s.value}</div>
+                  <div key={s.label} className="rounded-lg bg-uber-chip-gray px-4 py-3">
+                    <div className="mb-0.5 text-xs text-uber-body-gray">{s.label}</div>
+                    <div className="text-sm font-bold">{s.value}</div>
                   </div>
                 ))}
               </div>
             )}
 
-            <h2 className="text-xl font-bold mb-4">Pricing</h2>
+            <h2 className="mb-4 text-xl font-bold">Pricing</h2>
             <div className="card divide-y divide-black/5">
-              {DURATION_OPTIONS.map((d) => (
-                <div key={d.key} className="flex justify-between px-5 py-3 text-sm">
-                  <span className="text-uber-body-gray">{d.label}</span>
-                  <span className="font-bold">
-                    ₹{(vehicle[d.rateKey as keyof Vehicle] as number).toLocaleString()}/{d.unit}
-                  </span>
+              {PACKAGE_PLANS.map((plan) => (
+                <div key={plan.key} className="flex justify-between px-5 py-3 text-sm">
+                  <span className="text-uber-body-gray">{plan.label}</span>
+                  <span className="font-bold">{rupees(getPackageRate(vehicle, plan.rateKey))}</span>
                 </div>
               ))}
               <div className="flex justify-between px-5 py-3 text-sm">
-                <span className="text-uber-body-gray">Security Deposit</span>
-                <span className="font-bold">₹{vehicle.deposit_amount.toLocaleString()}</span>
+                <span className="text-uber-body-gray">Tax</span>
+                <span className="font-bold">{GST_INCLUSIVE_COPY}</span>
               </div>
             </div>
 
             <div className="mt-8">
-              <h2 className="text-xl font-bold mb-3">About this vehicle</h2>
-              <p className="text-uber-body-gray text-sm leading-relaxed">
-                This {vehicle.brand} {vehicle.model} is maintained by a verified RBA partner in {vehicle.city}. All
-                vehicles are insured, road-legal, and regularly serviced. Security deposit is collected at booking and
-                refunded on safe return. Excess kilometre charges apply per policy.
+              <h2 className="mb-3 text-xl font-bold">About this scooter</h2>
+              <p className="text-sm leading-relaxed text-uber-body-gray">
+                This {vehicle.brand} {vehicle.model} is part of the current Bengaluru scooter fleet. Package pricing is
+                GST-inclusive and availability is confirmed after you submit the request.
               </p>
             </div>
           </div>
 
-          <div className="lg:sticky lg:top-24 h-fit">
-            <div className="bg-white rounded-[24px] shadow-[rgba(0,0,0,0.12)_0px_4px_16px_0px] p-6">
-              <h2 className="text-xl font-bold mb-5">Reserve this bike</h2>
+          <div className="h-fit lg:sticky lg:top-24">
+            <div className="rounded-[24px] bg-white p-6 shadow-[rgba(0,0,0,0.12)_0px_4px_16px_0px]">
+              <h2 className="mb-5 text-xl font-bold">Reserve this scooter</h2>
 
               <div className="mb-4">
-                <label className="block text-xs font-semibold uppercase tracking-wider text-uber-body-gray mb-2">Duration Type</label>
-                <div className="flex gap-2 flex-wrap">
-                  {DURATION_OPTIONS.map((d) => (
+                <label className="mb-2 block text-xs font-semibold uppercase tracking-wider text-uber-body-gray">Package</label>
+                <div className="flex flex-wrap gap-2">
+                  {PACKAGE_PLANS.map((plan) => (
                     <button
-                      key={d.key}
-                      onClick={() => setDurationBucket(d.key)}
-                      className={`rounded-full text-xs py-1.5 px-4 transition-colors font-medium ${durationBucket === d.key ? "bg-black text-white" : "bg-[#efefef] text-black hover:bg-[#e2e2e2]"}`}
+                      key={plan.key}
+                      type="button"
+                      onClick={() => setPackageKey(plan.rateKey)}
+                      className={`rounded-full px-4 py-1.5 text-xs font-medium transition-colors ${
+                        packageKey === plan.rateKey ? "bg-black text-white" : "bg-[#efefef] text-black hover:bg-[#e2e2e2]"
+                      }`}
                     >
-                      {d.label}
+                      {plan.label}
                     </button>
                   ))}
                 </div>
               </div>
 
-              <div className="mb-4">
-                <label className="block text-xs font-semibold uppercase tracking-wider text-uber-body-gray mb-2">
-                  How many {durationBucket === "hour" ? "hours" : durationBucket === "day" ? "days" : durationBucket === "week" ? "weeks" : "months"}?
-                </label>
-                <div className="flex items-center gap-3">
-                  <button
-                    onClick={() => setDurationValue(Math.max(1, durationValue - 1))}
-                    className="w-8 h-8 rounded-full bg-uber-chip-gray hover:bg-uber-hover-gray flex items-center justify-center font-bold transition-colors"
-                  >
-                    -
-                  </button>
-                  <span className="text-2xl font-bold w-8 text-center">{durationValue}</span>
-                  <button
-                    onClick={() => setDurationValue(durationValue + 1)}
-                    className="w-8 h-8 rounded-full bg-uber-chip-gray hover:bg-uber-hover-gray flex items-center justify-center font-bold transition-colors"
-                  >
-                    +
-                  </button>
-                </div>
-              </div>
-
-              <div className="mb-4 flex items-center justify-between py-3 border-t border-black/5">
+              <div className="mb-4 flex items-center justify-between border-t border-black/5 py-3">
                 <div>
                   <div className="text-sm font-medium">Extra Helmet</div>
-                  <div className="text-xs text-uber-body-gray">Additional ₹50/rental</div>
+                  <div className="text-xs text-uber-body-gray">Additional Rs. 50/rental</div>
                 </div>
                 <button
+                  type="button"
                   onClick={() => setExtraHelmet(!extraHelmet)}
-                  className={`relative w-11 h-6 rounded-full transition-colors duration-200 ${extraHelmet ? "bg-black" : "bg-uber-muted-gray"}`}
+                  className={`relative h-6 w-11 rounded-full transition-colors duration-200 ${extraHelmet ? "bg-black" : "bg-uber-muted-gray"}`}
                   role="switch"
                   aria-checked={extraHelmet}
                 >
-                  <span className={`absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full shadow transition-transform duration-200 ${extraHelmet ? "translate-x-5" : "translate-x-0"}`} />
-                </button>
-              </div>
-
-              <div className="mb-4 flex items-center justify-between py-3 border-t border-black/5">
-                <div>
-                  <div className="text-sm font-medium flex items-center gap-1.5">
-                    <Icon name="location" className="w-4 h-4 text-black" /> Doorstep Delivery
-                  </div>
-                  <div className="text-xs text-uber-body-gray">Est. +₹150 fee (collected at delivery)</div>
-                </div>
-                <button
-                  onClick={() => setDoorstepDelivery(!doorstepDelivery)}
-                  className={`relative w-11 h-6 rounded-full transition-colors duration-200 ${doorstepDelivery ? "bg-black" : "bg-uber-muted-gray"}`}
-                  role="switch"
-                  aria-checked={doorstepDelivery}
-                >
-                  <span className={`absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full shadow transition-transform duration-200 ${doorstepDelivery ? "translate-x-5" : "translate-x-0"}`} />
+                  <span className={`absolute left-0.5 top-0.5 h-5 w-5 rounded-full bg-white shadow transition-transform duration-200 ${extraHelmet ? "translate-x-5" : "translate-x-0"}`} />
                 </button>
               </div>
 
               <div className="mb-4 border-t border-black/5 pt-4">
-                <label className="block text-xs font-semibold uppercase tracking-wider text-uber-body-gray mb-2">Coupon Code</label>
+                <label className="mb-2 block text-xs font-semibold uppercase tracking-wider text-uber-body-gray">
+                  Pickup zone
+                </label>
+                <select
+                  className="mb-3 w-full rounded-lg border border-black px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-black"
+                  value={pickupZone}
+                  onChange={(event) => setPickupZone(event.target.value)}
+                >
+                  <option value="Indiranagar">Indiranagar</option>
+                  <option value="Koramangala">Koramangala</option>
+                  <option value="Whitefield">Whitefield</option>
+                  <option value="Jayanagar">Jayanagar</option>
+                  <option value="Hebbal">Hebbal</option>
+                </select>
+                <input
+                  type="text"
+                  placeholder="Apartment, landmark, or pickup note"
+                  value={pickupAddress}
+                  onChange={(event) => setPickupAddress(event.target.value)}
+                  className="w-full rounded-lg border border-black/20 px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-black"
+                />
+              </div>
+
+              <div className="mb-4 border-t border-black/5 pt-4">
+                <label className="mb-2 block text-xs font-semibold uppercase tracking-wider text-uber-body-gray">Coupon Code</label>
                 <input
                   type="text"
                   placeholder="e.g. WELCOME5"
                   value={coupon}
                   onChange={(e) => setCoupon(e.target.value.toUpperCase())}
-                  className="w-full border border-black rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-black"
+                  className="w-full rounded-lg border border-black px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-black"
                 />
               </div>
 
-              <div className="border-t border-black/10 pt-4 mb-4 min-h-[120px]">
+              <div className="mb-4 border-t border-black/5 pt-4">
+                <div className="mb-3 text-xs font-semibold uppercase tracking-wider text-uber-body-gray">
+                  Contact details
+                </div>
+                <div className="grid grid-cols-1 gap-3">
+                  <input className="form-input" value={legalName} onChange={(event) => setLegalName(event.target.value)} placeholder="Full name" />
+                  <input className="form-input" value={profileEmail} onChange={(event) => setProfileEmail(event.target.value)} placeholder="Email" />
+                  <input className="form-input" value={mobile} onChange={(event) => setMobile(event.target.value)} placeholder="Mobile" />
+                </div>
+              </div>
+
+              <div className="mb-4 min-h-[112px] border-t border-black/10 pt-4">
                 {quoteLoading ? (
-                  <div className="flex items-center gap-2 text-uber-body-gray text-sm py-4">
-                    <svg className="animate-spin w-4 h-4" fill="none" viewBox="0 0 24 24">
-                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
-                    </svg>
+                  <div className="flex items-center gap-2 py-4 text-sm text-uber-body-gray">
+                    <span className="spinner" />
                     Calculating price...
                   </div>
                 ) : quoteError ? (
-                  <p className="text-red-600 text-xs py-2">{quoteError}</p>
+                  <p className="py-2 text-xs text-red-600">{quoteError}</p>
                 ) : quote ? (
                   <>
-                    <QuoteRow label="Base fare" value={`₹${quote.base_amount.toLocaleString()}`} />
-                    <QuoteRow label="Duration" value={`₹${quote.duration_amount.toLocaleString()}`} />
-                    {quote.addon_amount > 0 && <QuoteRow label="Add-ons (helmet)" value={`₹${quote.addon_amount.toLocaleString()}`} />}
-                    {doorstepDelivery && <QuoteRow label="Delivery fee (estimate)" value={`₹150`} />}
-                    {quote.coupon_discount > 0 && <QuoteRow label="Coupon discount" value={`-₹${quote.coupon_discount.toLocaleString()}`} />}
-                    <QuoteRow label="Security deposit" value={`₹${quote.deposit_amount.toLocaleString()}`} />
-                    <QuoteRow label="Tax" value={`₹${quote.tax_amount.toLocaleString()}`} />
-                    <QuoteRow label="Total payable" value={`₹${(quote.total_payable + (doorstepDelivery ? 150 : 0)).toLocaleString()}`} highlight />
-                    {doorstepDelivery && (
-                       <p className="text-[10px] text-orange-600 mt-1 font-medium text-right">Delivery fee collected separately</p>
-                    )}
-                    <p className="text-xs text-uber-muted-gray mt-2">
-                      Includes {quote.km_included} km · ₹{quote.excess_km_rate}/km extra
+                    <QuoteRow label="Package fare" value={rupees(quote.base_amount)} />
+                    {quote.addon_amount > 0 && <QuoteRow label="Extra helmet" value={rupees(quote.addon_amount)} />}
+                    {quote.coupon_discount > 0 && <QuoteRow label="Coupon discount" value={`-${rupees(quote.coupon_discount)}`} />}
+                    <QuoteRow label="GST" value="Included" />
+                    {quote.deposit_amount > 0 && <QuoteRow label="Security deposit" value={rupees(quote.deposit_amount)} />}
+                    <QuoteRow label="Total payable" value={rupees(quote.total_payable)} highlight />
+                    <p className="mt-2 text-xs text-uber-muted-gray">
+                      Includes {quote.km_included} km - Rs. {quote.excess_km_rate}/km extra
                     </p>
                   </>
                 ) : null}
               </div>
 
-              <div className="bg-[#f7f7f7] rounded-2xl p-5 mb-6 border border-black/5">
-                <h3 className="text-sm font-bold text-black mb-3 flex items-center gap-2">
-                  <Icon name="shield" className="w-4 h-4" /> 
+              <div className="mb-6 rounded-2xl border border-black/5 bg-[#f7f7f7] p-5">
+                <h3 className="mb-3 flex items-center gap-2 text-sm font-bold text-black">
+                  <Icon name="shield" className="h-4 w-4" />
                   Rental Policies
                 </h3>
                 <ul className="space-y-2 text-[13px] text-uber-body-gray">
-                  <li className="flex justify-between items-center">
+                  <li className="flex items-center justify-between">
                     <span>Cancellation</span>
-                    <span className="font-semibold text-black text-right">Free up to 24h</span>
+                    <span className="text-right font-semibold text-black">Free up to 24h</span>
                   </li>
-                  <li className="flex justify-between items-center">
+                  <li className="flex items-center justify-between">
                     <span>Late Return</span>
-                    <span className="font-semibold text-black text-right">₹50/hr after grace</span>
+                    <span className="text-right font-semibold text-black">Rs. 50/hr after grace</span>
                   </li>
-                  <li className="flex justify-between items-center">
-                    <span>Deposit Refund</span>
-                    <span className="font-semibold text-black text-right">Within 24h of drop</span>
+                  <li className="flex items-center justify-between">
+                    <span>Availability</span>
+                    <span className="text-right font-semibold text-black">Confirmed by team</span>
                   </li>
-                  <li className="flex justify-between items-center">
+                  <li className="flex items-center justify-between">
                     <span>Fuel</span>
-                    <span className="font-semibold text-black text-right">Return same level</span>
+                    <span className="text-right font-semibold text-black">Return same level</span>
                   </li>
                 </ul>
               </div>
 
-              {bookingError && <p className="text-red-600 text-xs mb-3">{bookingError}</p>}
+              {bookingError && <p className="mb-3 text-xs text-red-600">{bookingError}</p>}
               <button
+                type="button"
                 onClick={handleReserve}
                 disabled={bookingLoading || quoteLoading || !quote}
-                className="w-full py-4 text-base relative disabled:opacity-50 disabled:cursor-not-allowed rounded-full bg-black text-white hover:bg-[#e2e2e2] hover:text-black transition-colors font-bold"
+                className="w-full rounded-full bg-black py-4 text-base font-bold text-white transition-colors hover:bg-[#e2e2e2] hover:text-black disabled:cursor-not-allowed disabled:opacity-50"
               >
-                {bookingLoading ? (
-                  <span className="flex items-center justify-center gap-2">
-                    <svg className="animate-spin w-4 h-4" fill="none" viewBox="0 0 24 24">
-                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
-                    </svg>
-                    Reserving...
-                  </span>
-                ) : (
-                  "Reserve Now"
-                )}
+                {bookingLoading ? "Submitting..." : "Submit Booking Request"}
               </button>
 
-              <p className="text-center text-xs text-uber-muted-gray mt-3">KYC required · Secure Razorpay checkout</p>
+              <p className="mt-3 text-center text-xs text-uber-muted-gray">Availability and payment details are confirmed after review.</p>
             </div>
           </div>
         </div>
