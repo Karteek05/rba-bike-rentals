@@ -23,9 +23,7 @@ type Quote = {
 };
 
 const API_HEADERS = {
-  "content-type": "application/json",
-  "x-user-id": "cust_001",
-  "x-role": "customer"
+  "Content-Type": "application/json"
 };
 
 const PACKAGE_TO_BUCKET: Record<PackageRateKey, "day" | "week" | "month"> = {
@@ -112,7 +110,6 @@ export default function BookPage() {
         method: "POST",
         headers: API_HEADERS,
         body: JSON.stringify({
-          user_id: "cust_001",
           vehicle_id: vehicleId,
           city: "bengaluru",
           duration_bucket: durationBucket,
@@ -157,7 +154,6 @@ export default function BookPage() {
         method: "POST",
         headers: API_HEADERS,
         body: JSON.stringify({
-          user_id: "cust_001",
           vehicle_id: vehicleId,
           city: "bengaluru",
           pickup_at: pickup,
