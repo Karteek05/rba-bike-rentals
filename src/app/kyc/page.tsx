@@ -2,6 +2,7 @@
 
 import { useRef, useState } from "react";
 import Icon from "../components/Icon";
+import { authClient } from "@/lib/auth/auth-client";
 
 const API_HEADERS = {
   "Content-Type": "application/json"
@@ -44,6 +45,7 @@ function StepIndicator({ current }: { current: number }) {
 }
 
 export default function KycPage() {
+  const { data: session } = authClient.useSession();
   const [status, setStatus] = useState<KycStatus>("idle");
   const [requestId, setRequestId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
