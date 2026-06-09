@@ -19,7 +19,7 @@ export default function LoginPage() {
   // Redirect if already logged in
   useEffect(() => {
     if (session?.user) {
-      const role = session.user.role as string;
+      const role = (session.user as any).role as string;
       if (role === "admin") router.push("/admin");
       else if (role === "partner_investor") router.push("/partner");
       else if (role === "customer") router.push("/customer");
