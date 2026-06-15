@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { approveBooking } from "@/lib/admin/service";
 import { createBooking } from "@/lib/bookings/service";
+import { store } from "@/lib/data/store";
 
 describe("admin gated booking flow", () => {
   it("creates verified-user bookings in admin review and opens payment after approval", async () => {
@@ -38,6 +39,46 @@ describe("admin gated booking flow", () => {
     const approved = await approveBooking(
       booking.id,
       { note: "test approval" },
+      { userId: "admin_001", role: "admin" }
+    );
+
+    expect(approved.status).toBe("payment_pending");
+  });
+
+  it("allows admin to approve a booking that is still pending KYC", async () => {
+    const bookingId = `booking_pending_kyc_${Date.now()}`;
+    const baseTime = Date.now();
+
+    store.bookings.push({
+      id: bookingId,
+      user_id: "cust_002",
+      vehicle_id: "veh_002",
+      city: "bengaluru",
+      status: "pending_kyc",
+      pickup_at: new Date(baseTime + 12 * 24 * 60 * 60 * 1000).toISOString(),
+      drop_at: new Date(baseTime + 13 * 24 * 60 * 60 * 1000).toISOString(),
+      pickup_zone: "Indiranagar",
+      pickup_address: null,
+      pickup_latitude: null,
+      pickup_longitude: null,
+      quote: {
+        base_amount: 1600,
+        duration_amount: 1600,
+        addon_amount: 0,
+        coupon_discount: 0,
+        tax_amount: 288,
+        deposit_amount: 2000,
+        total_payable: 3888,
+        km_included: 120,
+        excess_km_rate: 4
+      },
+      created_at: new Date(baseTime).toISOString(),
+      updated_at: new Date(baseTime).toISOString()
+    });
+
+    const approved = await approveBooking(
+      bookingId,
+      { note: "manual approval without KYC for current ops" },
       { userId: "admin_001", role: "admin" }
     );
 

@@ -104,7 +104,7 @@ function getQrImageUrl(booking: Booking) {
 }
 
 export default function MyBookingsPage() {
-  const { data: session } = authClient.useSession();
+  const { data: session, isPending: sessionPending } = authClient.useSession();
   const customerName = session?.user?.name || session?.user?.email || "Customer";
   
   const [bookings, setBookings] = useState<Booking[]>([]);
@@ -151,9 +151,17 @@ export default function MyBookingsPage() {
   }, []);
 
   useEffect(() => {
+    if (sessionPending) return;
+    if (!session?.user) {
+      setBookings([]);
+      setNotifications([]);
+      setError("Please sign in to view your bookings.");
+      setLoading(false);
+      return;
+    }
     fetchBookings();
     fetchNotifications();
-  }, [fetchBookings, fetchNotifications]);
+  }, [fetchBookings, fetchNotifications, session?.user?.id, sessionPending]);
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);

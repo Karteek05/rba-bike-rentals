@@ -13,37 +13,179 @@ function formatMoney(value: unknown) {
   return typeof value === "number" ? `Rs. ${value.toLocaleString("en-IN")}` : "the payable amount";
 }
 
-function buildUserEmail(params: {
+function escapeHtml(value: unknown) {
+  return String(value ?? "")
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;");
+}
+
+function paragraph(lines: string[]) {
+  return lines.filter(Boolean).join("\n");
+}
+
+function renderEmailHtml(params: {
+  title: string;
+  intro: string;
+  rows: Array<[string, string]>;
+  cta?: { label: string; url: string };
+  closing: string;
+}) {
+  const rows = params.rows
+    .map(
+      ([label, value]) => `
+        <tr>
+          <td style="padding:10px 0;color:#68707d;font-size:13px;">${escapeHtml(label)}</td>
+          <td style="padding:10px 0;color:#111820;font-size:13px;font-weight:700;text-align:right;">${escapeHtml(value)}</td>
+        </tr>`
+    )
+    .join("");
+
+  const cta = params.cta
+    ? `<a href="${escapeHtml(params.cta.url)}" style="display:inline-block;margin-top:22px;border-radius:999px;background:#c78310;color:#ffffff;padding:13px 22px;font-size:14px;font-weight:800;text-decoration:none;">${escapeHtml(params.cta.label)}</a>`
+    : "";
+
+  return `<!doctype html>
+<html>
+  <body style="margin:0;background:#f5f1e8;font-family:Arial,Helvetica,sans-serif;color:#111820;">
+    <div style="display:none;max-height:0;overflow:hidden;color:transparent;">${escapeHtml(params.intro)}</div>
+    <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="background:#f5f1e8;padding:28px 12px;">
+      <tr>
+        <td align="center">
+          <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="max-width:560px;background:#ffffff;border:1px solid #e6ddcd;border-radius:14px;overflow:hidden;">
+            <tr>
+              <td style="padding:22px 26px;background:#101820;color:#ffffff;">
+                <div style="font-size:20px;font-weight:900;letter-spacing:.2px;">RBA<span style="color:#d29422;">.</span></div>
+                <div style="margin-top:4px;color:#c9d0d8;font-size:12px;">Bengaluru Bike Rentals</div>
+              </td>
+            </tr>
+            <tr>
+              <td style="padding:28px 26px;">
+                <h1 style="margin:0 0 12px;color:#111820;font-size:24px;line-height:1.2;">${escapeHtml(params.title)}</h1>
+                <p style="margin:0 0 22px;color:#3c4652;font-size:15px;line-height:1.6;">${escapeHtml(params.intro)}</p>
+                <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="border-top:1px solid #ece5da;border-bottom:1px solid #ece5da;">
+                  ${rows}
+                </table>
+                ${cta}
+                <p style="margin:24px 0 0;color:#3c4652;font-size:14px;line-height:1.6;">${escapeHtml(params.closing)}</p>
+              </td>
+            </tr>
+            <tr>
+              <td style="padding:18px 26px;background:#fbf8f1;color:#68707d;font-size:12px;line-height:1.5;">
+                This is an automated update from RBA Bike Rentals. If you did not request this booking, reply to this email so the team can review it.
+              </td>
+            </tr>
+          </table>
+        </td>
+      </tr>
+    </table>
+  </body>
+</html>`;
+}
+
+export function buildUserEmail(params: {
   templateKey: string;
   payload: NotificationPayload;
 }) {
   if (params.templateKey === "booking_approved_pay_now") {
+    const paymentUrl = String(params.payload.payment_url ?? "");
+    const amount = formatMoney(params.payload.total_payable);
+    const bookingId = String(params.payload.booking_id ?? "");
+    const vehicleId = String(params.payload.vehicle_id ?? "");
+    const text = paragraph([
+      "Your RBA booking is approved.",
+      "",
+      "The admin team has reviewed your request and opened payment for the booking.",
+      "",
+      `Booking ID: ${bookingId}`,
+      `Vehicle: ${vehicleId}`,
+      `Amount due: ${amount}`,
+      paymentUrl ? `Complete payment: ${paymentUrl}` : "",
+      "",
+      "After payment is received, our team will coordinate pickup details with you.",
+      "",
+      "Regards,",
+      "RBA Bike Rentals"
+    ]);
+
     return {
       subject: "Your RBA booking is approved",
-      text: [
-        "Your RBA booking has been confirmed by the admin team.",
-        "",
-        `Booking ID: ${String(params.payload.booking_id ?? "")}`,
-        `Vehicle: ${String(params.payload.vehicle_id ?? "")}`,
-        `Amount: ${formatMoney(params.payload.total_payable)}`,
-        params.payload.payment_url ? `Payment link: ${String(params.payload.payment_url)}` : "",
-        "",
-        "You can pay now from My Bookings. After payment, the team will coordinate pickup for the bike."
-      ].filter(Boolean).join("\n")
+      text,
+      html: renderEmailHtml({
+        title: "Booking approved",
+        intro: "The admin team has reviewed your request and opened payment for the booking.",
+        rows: [
+          ["Booking ID", bookingId],
+          ["Vehicle", vehicleId],
+          ["Amount due", amount]
+        ],
+        cta: paymentUrl ? { label: "Complete payment", url: paymentUrl } : undefined,
+        closing: "After payment is received, our team will coordinate pickup details with you."
+      })
     };
   }
 
   if (params.templateKey === "booking_submitted") {
+    const bookingId = String(params.payload.booking_id ?? "");
+    const vehicleId = String(params.payload.vehicle_id ?? "");
+    const text = paragraph([
+      "We received your RBA booking request.",
+      "",
+      `Booking ID: ${bookingId}`,
+      `Vehicle: ${vehicleId}`,
+      "",
+      "The team will review availability and send the next update once the booking is ready for payment.",
+      "",
+      "Regards,",
+      "RBA Bike Rentals"
+    ]);
+
     return {
       subject: "We received your RBA booking request",
-      text: [
-        "We received your booking request.",
-        "",
-        `Booking ID: ${String(params.payload.booking_id ?? "")}`,
-        `Vehicle: ${String(params.payload.vehicle_id ?? "")}`,
-        "",
-        "The team will review availability and update the booking status."
-      ].join("\n")
+      text,
+      html: renderEmailHtml({
+        title: "Booking request received",
+        intro: "We received your booking request and will review availability before opening payment.",
+        rows: [
+          ["Booking ID", bookingId],
+          ["Vehicle", vehicleId]
+        ],
+        closing: "You will receive another email once the booking is ready for payment."
+      })
+    };
+  }
+
+  if (params.templateKey === "booking_rejected") {
+    const bookingId = String(params.payload.booking_id ?? "");
+    const vehicleId = String(params.payload.vehicle_id ?? "");
+    const reason = String(params.payload.reason ?? "The booking could not be approved.");
+    const text = paragraph([
+      "Your RBA booking could not be approved.",
+      "",
+      `Booking ID: ${bookingId}`,
+      `Vehicle: ${vehicleId}`,
+      `Reason: ${reason}`,
+      "",
+      "You can place a new booking request with a different vehicle, date, or pickup window.",
+      "",
+      "Regards,",
+      "RBA Bike Rentals"
+    ]);
+
+    return {
+      subject: "Update on your RBA booking request",
+      text,
+      html: renderEmailHtml({
+        title: "Booking request update",
+        intro: "Your booking request could not be approved in its current form.",
+        rows: [
+          ["Booking ID", bookingId],
+          ["Vehicle", vehicleId],
+          ["Reason", reason]
+        ],
+        closing: "You can place a new booking request with a different vehicle, date, or pickup window."
+      })
     };
   }
 
@@ -92,7 +234,8 @@ export async function notifyUser(params: {
       sendSmtpMail({
         to: params.email,
         subject: email.subject,
-        text: email.text
+        text: email.text,
+        html: email.html
       }).catch((error) =>
         enqueue("email", {
           templateKey: `${params.templateKey}_smtp_failed`,

@@ -2,6 +2,7 @@ import { betterAuth } from "better-auth";
 import { emailOTP } from "better-auth/plugins/email-otp";
 import { Pool } from "pg";
 import { sendSmtpMail } from "@/lib/integrations/smtp";
+import { getServerAppBaseUrl } from "@/lib/utils/app-url";
 
 const isProduction = process.env.APP_ENV === "production";
 const dbUrl = resolveAuthDatabaseUrl();
@@ -9,9 +10,7 @@ const authSecret =
   process.env.BETTER_AUTH_SECRET ??
   (isProduction ? undefined : "rbabikerentals-dev-secret-change-in-prod");
 const authBaseURL =
-  process.env.BETTER_AUTH_URL ??
-  process.env.APP_BASE_URL ??
-  (isProduction ? undefined : "http://localhost:3000");
+  getServerAppBaseUrl();
 const googleClientId = process.env.GOOGLE_CLIENT_ID;
 const googleClientSecret = process.env.GOOGLE_CLIENT_SECRET;
 

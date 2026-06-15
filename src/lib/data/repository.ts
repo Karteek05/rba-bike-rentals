@@ -118,6 +118,48 @@ export async function upsertUser(user: User): Promise<User> {
   return data as User;
 }
 
+export async function anonymizeUserAccount(userId: string): Promise<User> {
+  const existing = await getUserOrThrow(userId);
+  const anonymized: User = {
+    ...existing,
+    name: "Deleted account",
+    email: null,
+    phone: null,
+    pan_number: null,
+    date_of_birth: null,
+    cibil_consent_at: null,
+    deleted_at: new Date().toISOString()
+  };
+
+  if (getDataMode() === "memory") {
+    const existingIndex = store.users.findIndex((item) => item.id === userId);
+    if (existingIndex < 0) {
+      throw new ApiException(404, "user_not_found", "User does not exist.");
+    }
+    store.users[existingIndex] = anonymized;
+    return anonymized;
+  }
+
+  const supabase = getSupabaseServiceClient();
+  const { data, error } = await supabase
+    .from("app_users")
+    .update({
+      name: anonymized.name,
+      email: null,
+      phone: null,
+      pan_number: null,
+      date_of_birth: null,
+      cibil_consent_at: null,
+      deleted_at: anonymized.deleted_at,
+      updated_at: anonymized.deleted_at
+    })
+    .eq("id", userId)
+    .select("*")
+    .single();
+  if (error) throw new ApiException(500, "db_error", error.message);
+  return data as User;
+}
+
 export async function listUsersByIds(userIds: string[]): Promise<User[]> {
   const ids = [...new Set(userIds)].filter(Boolean);
   if (!ids.length) return [];

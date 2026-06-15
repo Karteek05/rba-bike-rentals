@@ -479,6 +479,7 @@ export default function AdminDashboardPage() {
 
   const filteredBookings =
     bookingFilter === "all" ? bookings : bookings.filter((booking) => booking.status === bookingFilter);
+  const approvableStatuses = new Set(["pending_kyc", "admin_review"]);
 
   const totalRevenue = bookings
     .filter((booking) =>
@@ -973,7 +974,7 @@ export default function AdminDashboardPage() {
                       <td>
                         <div className="flex gap-2" style={{ flexWrap: "wrap" }}>
                           <span className="spec-chip">
-                            {booking.status === "admin_review"
+                            {approvableStatuses.has(booking.status)
                               ? "Awaiting admin approval"
                               : booking.status === "payment_pending"
                                 ? "Payment link sent"
@@ -988,20 +989,20 @@ export default function AdminDashboardPage() {
                       </td>
                       <td>
                         <div className="flex gap-2" style={{ flexWrap: "wrap" }}>
-                        {booking.status === "admin_review" && (
-                          <button
-                            className="btn btn-success btn-sm"
-                            onClick={() => approveBooking(booking.id)}
-                            disabled={loading === `approve-${booking.id}`}
-                          >
-                            {loading === `approve-${booking.id}` ? (
-                              <span className="spinner" />
-                            ) : (
-                              <Icon name="checkCircle" className="w-4 h-4" />
-                            )}{" "}
-                            Approve
-                          </button>
-                        )}
+                          {approvableStatuses.has(booking.status) && (
+                            <button
+                              className="btn btn-success btn-sm"
+                              onClick={() => approveBooking(booking.id)}
+                              disabled={loading === `approve-${booking.id}`}
+                            >
+                              {loading === `approve-${booking.id}` ? (
+                                <span className="spinner" />
+                              ) : (
+                                <Icon name="checkCircle" className="w-4 h-4" />
+                              )}{" "}
+                              Approve
+                            </button>
+                          )}
                         {!["cancelled", "completed"].includes(booking.status) && (
                           <button
                             className="btn btn-danger btn-sm"

@@ -8,7 +8,7 @@ describe("booking state machine", () => {
     ).not.toThrow();
   });
 
-  it("requires admin review before payment", () => {
+  it("allows admin to open payment from KYC pending or admin review", () => {
     expect(() =>
       assertCanTransition("pending_kyc", "admin_review", "kyc_verified")
     ).not.toThrow();
@@ -16,8 +16,8 @@ describe("booking state machine", () => {
       assertCanTransition("admin_review", "payment_pending", "admin_approve")
     ).not.toThrow();
     expect(() =>
-      assertCanTransition("pending_kyc", "payment_pending", "skip_admin")
-    ).toThrow();
+      assertCanTransition("pending_kyc", "payment_pending", "admin_approve_without_kyc")
+    ).not.toThrow();
   });
 
   it("blocks completed to ongoing", () => {

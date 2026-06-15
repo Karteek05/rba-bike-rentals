@@ -43,6 +43,7 @@ export interface User {
   pan_number?: string | null;
   date_of_birth?: string | null;
   cibil_consent_at?: string | null;
+  deleted_at?: string | null;
 }
 
 export interface Vehicle {

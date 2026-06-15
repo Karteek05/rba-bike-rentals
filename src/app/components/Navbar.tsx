@@ -123,12 +123,18 @@ export default function Navbar() {
 
           {session?.user ? (
             <div className="hidden items-center gap-2 rounded-full border border-[color:var(--color-line)] bg-white px-3 py-1.5 md:flex">
-              <span className="flex h-8 w-8 items-center justify-center rounded-full bg-[color:var(--color-ink)] text-xs font-black text-white">
-                {initial}
-              </span>
-              <span className="max-w-[150px] truncate text-xs font-bold text-[color:var(--color-ink)]">
-                {displayName}
-              </span>
+              <Link
+                href="/profile"
+                className="nav-focus flex min-w-0 items-center gap-2 rounded-full pr-1"
+                aria-label="Open profile"
+              >
+                <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-[color:var(--color-ink)] text-xs font-black text-white">
+                  {initial}
+                </span>
+                <span className="max-w-[150px] truncate text-xs font-bold text-[color:var(--color-ink)]">
+                  {displayName}
+                </span>
+              </Link>
               <button
                 type="button"
                 onClick={signOut}
@@ -202,14 +208,27 @@ export default function Navbar() {
             )}
 
             {session?.user ? (
-              <button
-                type="button"
-                className="nav-focus mt-2 flex items-center justify-between gap-3 rounded-lg bg-white px-4 py-3 text-sm font-semibold text-[color:var(--color-ink)]"
-                onClick={signOut}
-              >
-                <span className="truncate">Signed in as {displayName}</span>
-                <LogOut className="h-4 w-4 shrink-0" />
-              </button>
+              <>
+                <Link
+                  href="/profile"
+                  className={`nav-focus rounded-lg px-4 py-3 text-sm font-semibold transition-colors ${
+                    pathname === "/profile"
+                      ? "bg-[color:var(--color-ink)] text-white"
+                      : "text-[color:var(--color-ink)] hover:bg-[color:var(--color-paper-2)]"
+                  }`}
+                  onClick={() => setOpen(false)}
+                >
+                  Profile
+                </Link>
+                <button
+                  type="button"
+                  className="nav-focus mt-2 flex items-center justify-between gap-3 rounded-lg bg-white px-4 py-3 text-sm font-semibold text-[color:var(--color-ink)]"
+                  onClick={signOut}
+                >
+                  <span className="truncate">Signed in as {displayName}</span>
+                  <LogOut className="h-4 w-4 shrink-0" />
+                </button>
+              </>
             ) : (
               <Link
                 href="/login"

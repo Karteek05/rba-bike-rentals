@@ -145,10 +145,10 @@ export default function LoginPage() {
           </div>
           <div className="grid grid-cols-2 gap-2">
 
-            <Link href="/" className="btn-secondary text-center text-xs py-2 block">
+            <Link href="/dashboard-access?role=admin" className="btn-secondary text-center text-xs py-2 block">
               Admin Login
             </Link>
-            <Link href="/" className="btn-secondary text-center text-xs py-2 block">
+            <Link href="/dashboard-access?role=partner" className="btn-secondary text-center text-xs py-2 block">
               Partner Login
             </Link>
           </div>

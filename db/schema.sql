@@ -106,6 +106,7 @@ create table if not exists app_users (
   pan_number text,
   date_of_birth date,
   cibil_consent_at timestamptz,
+  deleted_at timestamptz,
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now(),
   constraint app_users_city_check check (city = 'bengaluru')
@@ -115,6 +116,7 @@ alter table if exists app_users add column if not exists phone text;
 alter table if exists app_users add column if not exists pan_number text;
 alter table if exists app_users add column if not exists date_of_birth date;
 alter table if exists app_users add column if not exists cibil_consent_at timestamptz;
+alter table if exists app_users add column if not exists deleted_at timestamptz;
 
 create table if not exists vehicles (
   id text primary key,

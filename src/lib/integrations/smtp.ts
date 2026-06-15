@@ -5,6 +5,7 @@ type MailParams = {
   to: string;
   subject: string;
   text: string;
+  html?: string;
 };
 
 function requireEnv(name: string) {
@@ -21,6 +22,10 @@ function encodeBase64(value: string) {
 
 function escapeSubject(value: string) {
   return value.replace(/\r?\n/g, " ").trim();
+}
+
+function escapeLeadingDots(value: string) {
+  return value.replace(/(^|\r?\n)\./g, "$1..");
 }
 
 class SmtpSession {
@@ -120,18 +125,38 @@ export async function sendSmtpMail(params: MailParams) {
     await session.command(`RCPT TO:<${params.to}>`, [250, 251]);
     await session.command("DATA", 354);
 
-    const body = [
+    const messageBody = params.html
+      ? [
+          `Content-Type: multipart/alternative; boundary="rba-mail-boundary"`,
+          "",
+          "--rba-mail-boundary",
+          "Content-Type: text/plain; charset=UTF-8",
+          "Content-Transfer-Encoding: 8bit",
+          "",
+          params.text,
+          "--rba-mail-boundary",
+          "Content-Type: text/html; charset=UTF-8",
+          "Content-Transfer-Encoding: 8bit",
+          "",
+          params.html,
+          "--rba-mail-boundary--"
+        ].join("\r\n")
+      : [
+          "Content-Type: text/plain; charset=UTF-8",
+          "Content-Transfer-Encoding: 8bit",
+          "",
+          params.text
+        ].join("\r\n");
+
+    const body = escapeLeadingDots([
       `From: ${from}`,
       `To: ${params.to}`,
       `Subject: ${escapeSubject(params.subject)}`,
       "MIME-Version: 1.0",
-      "Content-Type: text/plain; charset=UTF-8",
-      "",
-      params.text.replace(/\r?\n\./g, "\n.."),
-      "."
-    ].join("\r\n");
+      messageBody
+    ].join("\r\n"));
 
-    await session.command(body, 250);
+    await session.command(`${body}\r\n.`, 250);
     await session.command("QUIT", 221);
   } finally {
     session.end();

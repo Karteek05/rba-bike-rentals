@@ -3,7 +3,7 @@ import { ApiException } from "@/lib/utils/errors";
 
 const transitions: Record<BookingStatus, BookingStatus[]> = {
   draft: ["pending_kyc", "admin_review"],
-  pending_kyc: ["admin_review", "cancelled"],
+  pending_kyc: ["admin_review", "payment_pending", "cancelled"],
   admin_review: ["payment_pending", "cancelled"],
   payment_pending: ["confirmed", "cancelled"],
   confirmed: ["ongoing", "cancelled"],

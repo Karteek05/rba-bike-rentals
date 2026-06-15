@@ -12,12 +12,10 @@ import type { ApproveBookingRequest, RejectBookingRequest } from "@/lib/types/co
 import { assertCanTransition } from "@/lib/bookings/state-machine";
 import { ApiException } from "@/lib/utils/errors";
 import { notifyAdmin, notifyUser } from "@/lib/notifications/service";
+import { getServerAppBaseUrl } from "@/lib/utils/app-url";
 
 function getPaymentUrl(bookingId: string) {
-  const baseUrl =
-    process.env.APP_BASE_URL ||
-    process.env.BETTER_AUTH_URL ||
-    "http://localhost:3000";
+  const baseUrl = getServerAppBaseUrl() ?? "http://localhost:3000";
   return `${baseUrl.replace(/\/$/, "")}/my-bookings?pay=${encodeURIComponent(bookingId)}`;
 }
 
@@ -53,7 +51,8 @@ export async function approveBooking(
   }
 
   const booking = await getBookingOrThrow(bookingId);
-  if (booking.status !== "admin_review") {
+  const approvableFrom = new Set(["pending_kyc", "admin_review"]);
+  if (!approvableFrom.has(booking.status)) {
     throw new ApiException(
       409,
       "invalid_state",

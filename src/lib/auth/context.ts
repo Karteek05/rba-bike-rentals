@@ -50,8 +50,19 @@ export async function requireActor(
   if (userId) {
     try {
       const user = await getUserOrThrow(userId);
+      if (user.deleted_at) {
+        throw new ApiException(
+          401,
+          "account_deleted",
+          "This account has been deleted."
+        );
+      }
       role = user.role;
-    } catch {
+    } catch (error) {
+      if (error instanceof ApiException && error.code === "account_deleted") {
+        throw error;
+      }
+
       const sessionRole = isValidRole(session?.user?.role) ? session?.user?.role : "customer";
       const sessionName =
         session?.user?.name?.trim() || session?.user?.email?.trim() || userId;
