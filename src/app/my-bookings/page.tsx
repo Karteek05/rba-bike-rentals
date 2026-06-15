@@ -200,6 +200,11 @@ export default function MyBookingsPage() {
         return;
       }
       const order = json.data.order;
+      if (order?.provider === "upi_fallback" || !order?.key_id || !order?.order_id) {
+        setQrBookingId(booking.id);
+        showSuccess("Razorpay checkout is not configured. Scan the QR below to pay this booking amount.");
+        return;
+      }
       const loaded = await loadRazorpayScript();
       if (!loaded || !window.Razorpay) {
         setQrBookingId(booking.id);

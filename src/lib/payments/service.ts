@@ -14,6 +14,7 @@ import {
 import {
   createRazorpayOrder,
   createRazorpayRefund,
+  isRazorpayConfigured,
   verifyRazorpaySignature
 } from "@/lib/integrations/razorpay";
 import { notifyAdmin, notifyUser } from "@/lib/notifications/service";
@@ -44,6 +45,22 @@ function toClientOrder(params: {
   };
 }
 
+function toUpiFallbackOrder(params: {
+  bookingId: string;
+  amount: number;
+}) {
+  return {
+    provider: "upi_fallback" as const,
+    order_id: null,
+    key_id: null,
+    amount: params.amount,
+    currency: "INR" as const,
+    receipt: params.bookingId,
+    status: "upi_fallback",
+    reason: "razorpay_not_configured"
+  };
+}
+
 export async function createOrderForBooking(
   bookingId: string,
   actor: { userId: string; role: Role }
@@ -69,6 +86,13 @@ export async function createOrderForBooking(
       amount: existingOrder.amount,
       currency: existingOrder.currency,
       status: existingOrder.status
+    });
+  }
+
+  if (!isRazorpayConfigured()) {
+    return toUpiFallbackOrder({
+      bookingId,
+      amount: booking.quote.total_payable * 100
     });
   }
 

@@ -9,6 +9,12 @@ function smtpReady() {
   return Boolean(process.env.SMTP_HOST && process.env.SMTP_USER && process.env.SMTP_PASS && process.env.EMAIL_FROM);
 }
 
+function missingSmtpEnv() {
+  return ["SMTP_HOST", "SMTP_USER", "SMTP_PASS", "EMAIL_FROM"].filter(
+    (key) => !process.env[key]
+  );
+}
+
 function formatMoney(value: unknown) {
   return typeof value === "number" ? `Rs. ${value.toLocaleString("en-IN")}` : "the payable amount";
 }
@@ -229,24 +235,52 @@ export async function notifyUser(params: {
   ];
 
   const email = buildUserEmail(params);
-  if (email && params.email && smtpReady()) {
-    jobs.push(
-      sendSmtpMail({
-        to: params.email,
-        subject: email.subject,
-        text: email.text,
-        html: email.html
-      }).catch((error) =>
+  if (email && params.email) {
+    const missing = missingSmtpEnv();
+    if (missing.length) {
+      jobs.push(
         enqueue("email", {
-          templateKey: `${params.templateKey}_smtp_failed`,
+          templateKey: `${params.templateKey}_smtp_skipped`,
           recipient,
           payload: {
             ...params.payload,
-            error: error instanceof Error ? error.message : "SMTP send failed"
+            missing_env: missing
           }
         })
-      )
-    );
+      );
+    } else if (smtpReady()) {
+      jobs.push(
+        sendSmtpMail({
+          to: params.email,
+          subject: email.subject,
+          text: email.text,
+          html: email.html
+        })
+          .then(() =>
+            enqueue("email", {
+              templateKey: `${params.templateKey}_smtp_sent`,
+              recipient,
+              payload: params.payload
+            })
+          )
+          .catch((error) => {
+            const message = error instanceof Error ? error.message : "SMTP send failed";
+            console.error("SMTP send failed", {
+              templateKey: params.templateKey,
+              recipient,
+              error: message
+            });
+            return enqueue("email", {
+              templateKey: `${params.templateKey}_smtp_failed`,
+              recipient,
+              payload: {
+                ...params.payload,
+                error: message
+              }
+            });
+          })
+      );
+    }
   }
 
   return Promise.all(jobs);

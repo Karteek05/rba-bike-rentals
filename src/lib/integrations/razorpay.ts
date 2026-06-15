@@ -1,6 +1,10 @@
 import crypto from "crypto";
 import { ApiException } from "@/lib/utils/errors";
 
+export function isRazorpayConfigured() {
+  return Boolean(process.env.RAZORPAY_KEY_ID && process.env.RAZORPAY_KEY_SECRET);
+}
+
 export async function createRazorpayOrder(params: {
   amountInPaise: number;
   currency?: "INR";
@@ -16,7 +20,7 @@ export async function createRazorpayOrder(params: {
 }> {
   const keyId = process.env.RAZORPAY_KEY_ID;
   const keySecret = process.env.RAZORPAY_KEY_SECRET;
-  if (!keyId || !keySecret) {
+  if (!isRazorpayConfigured() || !keyId || !keySecret) {
     throw new ApiException(
       500,
       "razorpay_env_missing",

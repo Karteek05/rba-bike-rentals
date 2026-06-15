@@ -17,12 +17,11 @@ import {
 } from "lucide-react";
 import { authClient } from "@/lib/auth/auth-client";
 import type { Booking, User } from "@/lib/types/domain";
-
-type AccountResponse = {
-  authenticated: boolean;
-  user: User | null;
-  accountDeleted?: boolean;
-};
+import {
+  readAccountPayload,
+  readBookingsPayload,
+  type AccountResponse
+} from "@/app/profile/profile-data";
 
 const rideStatuses = new Set(["confirmed", "ongoing", "extended", "completed"]);
 const pendingStatuses = new Set(["pending_kyc", "admin_review", "payment_pending"]);
@@ -54,7 +53,7 @@ function accountInitial(user: User | null) {
 }
 
 export default function ProfilePage() {
-  const { data: session } = authClient.useSession();
+  const { data: session, isPending: sessionPending } = authClient.useSession();
   const [account, setAccount] = useState<AccountResponse | null>(null);
   const [bookings, setBookings] = useState<Booking[]>([]);
   const [loading, setLoading] = useState(true);
@@ -67,12 +66,14 @@ export default function ProfilePage() {
     let cancelled = false;
 
     async function loadProfile() {
+      if (sessionPending) return;
+
       setLoading(true);
       setError("");
 
       try {
         const response = await fetch("/api/account/me", { cache: "no-store" });
-        const payload = (await response.json()) as AccountResponse;
+        const payload = readAccountPayload(await response.json());
         if (!response.ok) {
           throw new Error("Unable to load profile.");
         }
@@ -94,7 +95,7 @@ export default function ProfilePage() {
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [session?.user?.id, sessionPending]);
 
   useEffect(() => {
     if (!account?.authenticated || !account.user) {
@@ -112,9 +113,8 @@ export default function ProfilePage() {
           if (!cancelled) setBookings([]);
           return;
         }
-        const payload = (await response.json()) as { bookings?: Booking[] };
         if (!cancelled) {
-          setBookings(payload.bookings ?? []);
+          setBookings(readBookingsPayload(await response.json()));
         }
       } finally {
         if (!cancelled) {
