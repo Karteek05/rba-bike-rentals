@@ -33,9 +33,6 @@ async function getDevCustomerFallback() {
 export async function GET(request: Request) {
   try {
     const cookieHeader = request.headers.get("cookie") ?? "";
-    if (cookieHeader.includes(`${DASHBOARD_ACCESS_COOKIE}=`)) {
-      return ok({ authenticated: false, user: null });
-    }
 
     let session: AuthSession | null = null;
     try {
@@ -53,6 +50,10 @@ export async function GET(request: Request) {
     const sessionUser = session?.user;
     const userId = sessionUser?.id;
     if (!userId) {
+      if (cookieHeader.includes(`${DASHBOARD_ACCESS_COOKIE}=`)) {
+        return ok({ authenticated: false, user: null });
+      }
+
       const fallbackUser = await getDevCustomerFallback();
       return ok({
         authenticated: Boolean(fallbackUser),
