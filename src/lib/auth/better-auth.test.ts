@@ -14,6 +14,15 @@ describe("Better Auth configuration", () => {
     expect(resolveAuthDatabaseUrl({ APP_ENV: "development" })).toBeUndefined();
   });
 
+  test("ignores database URLs outside production", () => {
+    expect(
+      resolveAuthDatabaseUrl({
+        APP_ENV: "development",
+        SUPABASE_DB_URL: "postgres://stale-local-url"
+      })
+    ).toBeUndefined();
+  });
+
   test("prefers the Supabase database URL when configured", () => {
     expect(
       resolveAuthDatabaseUrl({

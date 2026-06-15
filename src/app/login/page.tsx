@@ -4,18 +4,30 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { authClient } from "@/lib/auth/auth-client";
-import Link from "next/link";
 import Icon from "@/app/components/Icon";
 import { motion } from "framer-motion";
 
 export default function LoginPage() {
   const router = useRouter();
+  const [mode, setMode] = useState<"signin" | "register">("signin");
+  const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
+  const [resetLoading, setResetLoading] = useState(false);
   const [error, setError] = useState("");
+  const [notice, setNotice] = useState("");
+  const [showResetAction, setShowResetAction] = useState(false);
 
   const { data: session } = authClient.useSession();
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const params = new URLSearchParams(window.location.search);
+    if (params.get("mode") === "register") {
+      setMode("register");
+    }
+  }, []);
 
   // Redirect if already logged in
   useEffect(() => {
@@ -28,18 +40,44 @@ export default function LoginPage() {
     }
   }, [session, router]);
 
-  const handleEmailSignIn = async (e: React.FormEvent) => {
+  const handleEmailAuth = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
     setError("");
+    setNotice("");
+    setShowResetAction(false);
 
-    const { error } = await authClient.signIn.email({
-      email,
-      password,
-    });
+    const { error } =
+      mode === "register"
+        ? await authClient.signUp.email({
+            email,
+            password,
+            name: name.trim() || email.split("@")[0] || "RBA Customer",
+            callbackURL: "/profile"
+          })
+        : await authClient.signIn.email({
+            email,
+            password
+          });
 
     if (error) {
-      setError(error.message || "Failed to sign in. Please check your credentials.");
+      const message = error.message || "";
+      const code = "code" in error ? String(error.code ?? "") : "";
+      const isDuplicateEmail =
+        mode === "register" &&
+        (code.includes("USER_ALREADY_EXISTS") ||
+          message.toLowerCase().includes("already") ||
+          message.toLowerCase().includes("exists"));
+
+      setError(
+        isDuplicateEmail
+          ? "An account already exists with this email. Reset your password or sign in instead."
+          : message ||
+              (mode === "register"
+                ? "Failed to create your account."
+                : "Failed to sign in. Please check your credentials.")
+      );
+      setShowResetAction(isDuplicateEmail || mode === "signin");
       setLoading(false);
     } else {
       // The useEffect will handle redirect once session updates
@@ -49,14 +87,63 @@ export default function LoginPage() {
   const handleGoogleSignIn = async () => {
     setLoading(true);
     setError("");
+    setNotice("");
+    setShowResetAction(false);
     const { error } = await authClient.signIn.social({
       provider: "google",
-      callbackURL: "/", // Can be updated to dynamically route if needed
+      callbackURL: mode === "register" ? "/profile" : "/",
     });
 
     if (error) {
-      setError(error.message || "Failed to sign in with Google.");
+      setError(error.message || "Failed to continue with Google.");
       setLoading(false);
+    }
+  };
+
+  const isRegister = mode === "register";
+
+  function switchMode(nextMode: "signin" | "register") {
+    setError("");
+    setNotice("");
+    setShowResetAction(false);
+    setMode(nextMode);
+    router.replace(nextMode === "register" ? "/login?mode=register" : "/login", {
+      scroll: false
+    });
+  }
+
+  const handleRequestPasswordReset = async () => {
+    if (!email) {
+      setError("Enter your email first so we can send the reset link.");
+      return;
+    }
+
+    setResetLoading(true);
+    setError("");
+    setNotice("");
+
+    try {
+      const response = await fetch("/api/auth/request-password-reset", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({
+          email,
+          redirectTo: "/reset-password"
+        })
+      });
+
+      if (!response.ok) {
+        throw new Error("Could not send the reset link right now.");
+      }
+
+      setNotice("If this email exists, a password reset link has been sent.");
+      setShowResetAction(false);
+      setMode("signin");
+      router.replace("/login", { scroll: false });
+    } catch (resetError) {
+      setError(resetError instanceof Error ? resetError.message : "Could not send the reset link right now.");
+    } finally {
+      setResetLoading(false);
     }
   };
 
@@ -72,18 +159,53 @@ export default function LoginPage() {
           <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-brand-dark text-white shadow-[0_8px_16px_rgba(0,0,0,0.1)]">
             <Icon name="shield" className="h-8 w-8" />
           </div>
-          <h1 className="text-4xl font-black text-brand-dark">Sign in</h1>
-          <p className="mt-2 text-sm leading-relaxed text-[#526074]">Book scooters, view rentals, and keep your account handy.</p>
+          <h1 className="text-4xl font-black text-brand-dark">
+            {isRegister ? "Register" : "Sign in"}
+          </h1>
+          <p className="mt-2 text-sm leading-relaxed text-[#526074]">
+            {isRegister
+              ? "Create your account to book scooters and track rentals."
+              : "Book scooters, view rentals, and keep your account handy."}
+          </p>
         </div>
 
         <div className="rounded-2xl border border-brand-dark/10 bg-white p-6 shadow-[rgba(0,0,0,0.08)_0px_8px_24px]">
           {error && (
-            <div className="mb-6 p-3 rounded-lg bg-red-50 border border-red-200 text-red-600 text-sm text-center font-medium">
-              {error}
+            <div className="mb-6 rounded-lg border border-red-200 bg-red-50 p-3 text-center text-sm font-medium text-red-600">
+              <p>{error}</p>
+              {showResetAction ? (
+                <button
+                  type="button"
+                  onClick={handleRequestPasswordReset}
+                  disabled={resetLoading}
+                  className="mt-3 rounded-full border border-red-200 bg-white px-4 py-2 text-xs font-black text-red-700 transition-colors hover:bg-red-100 disabled:cursor-not-allowed disabled:opacity-60"
+                >
+                  {resetLoading ? "Sending reset link..." : "Send password reset link"}
+                </button>
+              ) : null}
             </div>
           )}
 
-          <form onSubmit={handleEmailSignIn} className="space-y-4">
+          {notice && (
+            <div className="mb-6 rounded-lg border border-green-200 bg-green-50 p-3 text-center text-sm font-medium text-green-700">
+              {notice}
+            </div>
+          )}
+
+          <form onSubmit={handleEmailAuth} className="space-y-4">
+            {isRegister ? (
+              <label className="block">
+                <span className="mb-1.5 block text-xs font-bold text-[#526074] uppercase tracking-wider">Name</span>
+                <input
+                  className="form-input"
+                  type="text"
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
+                  placeholder="Your name"
+                  required
+                />
+              </label>
+            ) : null}
             <label className="block">
               <span className="mb-1.5 block text-xs font-bold text-[#526074] uppercase tracking-wider">Email</span>
               <input
@@ -112,7 +234,7 @@ export default function LoginPage() {
               disabled={loading}
               className="btn-primary w-full py-3 mt-2 text-sm font-bold"
             >
-              {loading ? "Signing in..." : "Sign in"}
+              {loading ? (isRegister ? "Creating account..." : "Signing in...") : isRegister ? "Register with email" : "Sign in"}
             </button>
           </form>
 
@@ -133,25 +255,32 @@ export default function LoginPage() {
               <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" fill="#FBBC05" />
               <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335" />
             </svg>
-            Sign in with Google
+            {isRegister ? "Register with Google" : "Sign in with Google"}
           </button>
+
+          {!isRegister ? (
+            <button
+              type="button"
+              onClick={handleRequestPasswordReset}
+              disabled={resetLoading}
+              className="nav-focus mt-4 w-full text-center text-xs font-bold text-[#526074] transition-colors hover:text-brand-dark disabled:cursor-not-allowed disabled:opacity-60"
+            >
+              {resetLoading ? "Sending reset link..." : "Forgot password?"}
+            </button>
+          ) : null}
         </div>
 
-        <div className="mt-4 rounded-xl border border-brand-dark/10 bg-white/70 backdrop-blur-md p-4">
-          <div className="mb-3 flex items-center gap-2 text-sm font-bold text-brand-dark">
-
-            <Icon name="settings" className="h-4 w-4" />
-            Staff dashboard access
-          </div>
-          <div className="grid grid-cols-2 gap-2">
-
-            <Link href="/dashboard-access?role=admin" className="btn-secondary text-center text-xs py-2 block">
-              Admin Login
-            </Link>
-            <Link href="/dashboard-access?role=partner" className="btn-secondary text-center text-xs py-2 block">
-              Partner Login
-            </Link>
-          </div>
+        <div className="mt-4 rounded-xl border border-brand-dark/10 bg-white/70 p-4 text-center backdrop-blur-md">
+          <p className="text-sm font-bold text-brand-dark">
+            {isRegister ? "Already have an account?" : "New to RBA Bike Rentals?"}
+          </p>
+          <button
+            type="button"
+            className="btn-secondary mt-3 w-full justify-center text-sm"
+            onClick={() => switchMode(isRegister ? "signin" : "register")}
+          >
+            {isRegister ? "Sign in instead" : "Create an account"}
+          </button>
         </div>
         
         <p className="text-center text-[10px] text-[#afafaf] mt-8">
