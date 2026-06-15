@@ -12,6 +12,10 @@ import {
   type PackageRateKey,
   type PublicFleetVehicle
 } from "@/lib/fleet/catalog";
+import {
+  buildBookHref,
+  durationParamToPackageKey
+} from "@/lib/bookings/schedule";
 
 const CATEGORY_ICONS: Record<string, IconName> = {
   scooter: "scooter",
@@ -31,34 +35,21 @@ const DURATIONS = [
   { key: "monthly", label: "Monthly", rateKey: "rate_per_month" as const }
 ];
 
-function mapDurationParamToRateKey(param: string | null): PackageRateKey {
-  switch (param) {
-    case "weekly":
-      return "rate_per_week";
-    case "fortnight":
-    case "15-days":
-      return "rate_per_day";
-    case "monthly":
-      return "rate_per_month";
-    case "daily":
-    default:
-      return "rate_per_week";
-  }
-}
-
 function VehicleCard({
   vehicle,
-  durationKey
+  durationKey,
+  bookingHref
 }: {
   vehicle: PublicFleetVehicle;
   durationKey: PackageRateKey;
+  bookingHref: string;
 }) {
   const rate = getPackageRate(vehicle, durationKey);
   const durUnit = PACKAGE_PLANS.find((d) => d.rateKey === durationKey)?.unit ?? "week";
   const icon = CATEGORY_ICONS[vehicle.category] ?? "scooter";
 
   return (
-    <Link href={`/book/${vehicle.id}`} className="group block">
+    <Link href={bookingHref} className="group block">
       <article className="card transition-colors duration-200 group-hover:border-[color:var(--color-ink)]">
         <div className="relative aspect-[16/10] overflow-hidden bg-[color:var(--color-paper-2)]">
           <img
@@ -112,7 +103,7 @@ function VehicleCard({
 
 function BrowsePageContent() {
   const searchParams = useSearchParams();
-  const initialDuration = mapDurationParamToRateKey(searchParams.get("duration"));
+  const initialDuration = durationParamToPackageKey(searchParams.get("duration"));
   const [category, setCategory] = useState("all");
   const [duration, setDuration] = useState<PackageRateKey>(initialDuration);
   const [maxPrice, setMaxPrice] = useState(7000);
@@ -120,7 +111,7 @@ function BrowsePageContent() {
   const [sortBy, setSortBy] = useState<"price_asc" | "price_desc" | "model">("price_asc");
 
   useEffect(() => {
-    setDuration(mapDurationParamToRateKey(searchParams.get("duration")));
+    setDuration(durationParamToPackageKey(searchParams.get("duration")));
   }, [searchParams]);
 
   const currentDurUnit = PACKAGE_PLANS.find((d) => d.rateKey === duration)?.unit ?? "week";
@@ -255,7 +246,12 @@ function BrowsePageContent() {
         ) : (
           <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
             {filtered.map((vehicle) => (
-              <VehicleCard key={vehicle.id} vehicle={vehicle} durationKey={duration} />
+              <VehicleCard
+                key={vehicle.id}
+                vehicle={vehicle}
+                durationKey={duration}
+                bookingHref={buildBookHref(vehicle.id, searchParams, duration)}
+              />
             ))}
           </div>
         )}

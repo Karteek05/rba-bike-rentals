@@ -61,6 +61,8 @@ describe("admin gated booking flow", () => {
       pickup_address: null,
       pickup_latitude: null,
       pickup_longitude: null,
+      km_limit_bucket: "day",
+      km_limit_value: 120,
       quote: {
         base_amount: 1600,
         duration_amount: 1600,
