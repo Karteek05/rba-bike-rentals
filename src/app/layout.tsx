@@ -8,7 +8,12 @@ export const metadata: Metadata = {
   title: "RBA Bike Rentals - Rent a Bike in Bengaluru",
   description:
     "Affordable scooter rentals in Bengaluru with weekly, 15-day, and monthly GST-inclusive packages.",
-  keywords: "bike rental, bengaluru, scooter, two-wheeler, rbabikerentals"
+  keywords: "bike rental, bengaluru, scooter, two-wheeler, rbabikerentals",
+  icons: {
+    icon: "/icon.svg",
+    shortcut: "/icon.svg",
+    apple: "/icon.svg"
+  }
 };
 
 export default function RootLayout({
