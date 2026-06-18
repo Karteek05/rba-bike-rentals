@@ -458,7 +458,7 @@ export async function approveBooking(
 
   const booking = await getBookingOrThrow(bookingId);
   
-  if (booking.status !== "pending_kyc") {
+  if (booking.status !== "pending_kyc" && booking.status !== "admin_review" as any) {
     throw new ApiException(400, "invalid_state", "Booking must be in pending_kyc state to be approved.");
   }
 
@@ -514,7 +514,7 @@ export async function rejectBooking(
 
   const booking = await getBookingOrThrow(bookingId);
   
-  if (booking.status !== "pending_kyc") {
+  if (booking.status !== "pending_kyc" && booking.status !== "admin_review" as any) {
     throw new ApiException(400, "invalid_state", "Booking must be in pending_kyc state to be rejected.");
   }
 
