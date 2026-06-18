@@ -1,16 +1,16 @@
 import { requireActor } from "@/lib/auth/context";
-import { rejectBooking } from "@/lib/bookings/service";
+import { approveBooking } from "@/lib/bookings/service";
 import { ok, fromError } from "@/lib/utils/http";
 
 export async function POST(
   request: Request,
-  context: { params: Promise<{ bookingId: string }> }
+  context: { params: Promise<{ id: string }> }
 ) {
   try {
     const actor = await requireActor(request, ["admin"]);
-    const { bookingId } = await context.params;
+    const { id } = await context.params;
     
-    const updated = await rejectBooking(bookingId, actor);
+    const updated = await approveBooking(id, actor);
     return ok({ booking: updated });
   } catch (error: any) {
     return fromError(error);
