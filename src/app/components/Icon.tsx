@@ -25,7 +25,8 @@ import {
   Clock,
   Calendar,
   type LucideIcon,
-  type LucideProps
+  type LucideProps,
+  UserPlus
 } from "lucide-react";
 
 export type IconName =
@@ -54,7 +55,8 @@ export type IconName =
   | "close"
   | "spark"
   | "clock"
-  | "calendar";
+  | "calendar"
+  | "user-plus";
 
 interface IconProps extends LucideProps {
   name: IconName;
@@ -87,6 +89,7 @@ const iconMap: Record<IconName, LucideIcon> = {
   spark: Sparkles,
   clock: Clock,
   calendar: Calendar,
+  "user-plus": UserPlus,
 };
 
 export default function Icon({ name, className, ...props }: IconProps) {
