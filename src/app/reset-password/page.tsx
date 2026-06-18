@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { authClient } from "@/lib/auth/auth-client";
 import Link from "next/link";
 import Icon from "@/app/components/Icon";
@@ -9,6 +9,9 @@ import { motion } from "framer-motion";
 
 export default function ResetPasswordPage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const token = searchParams.get("token") || undefined;
+  
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [loading, setLoading] = useState(false);
@@ -28,6 +31,7 @@ export default function ResetPasswordPage() {
 
     const { error } = await authClient.resetPassword({
       newPassword: password,
+      token,
     });
 
     if (error) {

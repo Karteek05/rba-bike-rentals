@@ -989,7 +989,7 @@ export default function AdminDashboardPage() {
                       </td>
                       <td>
                         <div className="flex gap-2" style={{ flexWrap: "wrap" }}>
-                          {approvableStatuses.has(booking.status) && (
+                          {booking.status === "pending_kyc" && (
                             <button
                               className="btn btn-success btn-sm"
                               onClick={() => approveBooking(booking.id)}

@@ -89,3 +89,27 @@ export async function sendBookingConfirmationEmail(email: string, bookingDetails
     html,
   });
 }
+
+export async function sendBookingApprovedEmail(email: string, bookingDetails: any, paymentLink: string) {
+  const text = `Hi there,\n\nGreat news! Your booking request (ID: ${bookingDetails.id}) has been approved.\n\nTo confirm your booking, please complete the payment using the following secure link powered by Razorpay:\n\n${paymentLink}\n\nThanks,\nRBA Bike Rentals Team`;
+  const html = `<p>Hi there,</p><p>Great news! Your booking request (ID: <strong>${bookingDetails.id}</strong>) has been <strong>approved</strong>.</p><p>To confirm your booking, please complete the payment using the following secure link powered by Razorpay:</p><p><a href="${paymentLink}" style="display:inline-block;padding:10px 20px;background-color:#0f172a;color:#ffffff;text-decoration:none;border-radius:5px;font-weight:bold;">Pay Now with Razorpay</a></p><p>Alternatively, copy this link: <br> <a href="${paymentLink}">${paymentLink}</a></p><p>Thanks,<br>RBA Bike Rentals Team</p>`;
+
+  await sendEmail({
+    to: email,
+    subject: `Booking Approved - Action Required - ${bookingDetails.id}`,
+    text,
+    html,
+  });
+}
+
+export async function sendBookingRejectedEmail(email: string, bookingDetails: any) {
+  const text = `Hi there,\n\nWe regret to inform you that your booking request (ID: ${bookingDetails.id}) could not be approved at this time.\n\nUnfortunately, the KYC process or credentials did not check out. You are welcome to try again later or contact support if you believe this is a mistake.\n\nThanks,\nRBA Bike Rentals Team`;
+  const html = `<p>Hi there,</p><p>We regret to inform you that your booking request (ID: <strong>${bookingDetails.id}</strong>) could not be approved at this time.</p><p>Unfortunately, the KYC process or credentials did not check out. You are welcome to try again later or contact support if you believe this is a mistake.</p><p>Thanks,<br>RBA Bike Rentals Team</p>`;
+
+  await sendEmail({
+    to: email,
+    subject: `Booking Update - ${bookingDetails.id}`,
+    text,
+    html,
+  });
+}

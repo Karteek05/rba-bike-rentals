@@ -1,7 +1,7 @@
 import { assertCanTransition } from "@/lib/bookings/state-machine";
 import { recordAudit } from "@/lib/audit/service";
 import { getSupabaseServiceClient } from "@/lib/db/supabase-client";
-import { sendBookingConfirmationEmail } from "@/lib/notifications/service";
+import { sendBookingConfirmationEmail, sendBookingApprovedEmail, sendBookingRejectedEmail } from "@/lib/notifications/service";
 import {
   assertBengaluruCity,
   getBookingOrThrow,
@@ -17,7 +17,7 @@ import {
   upsertKycRecord,
   updateBooking
 } from "@/lib/data/repository";
-import { createRazorpayOrder } from "@/lib/integrations/razorpay";
+import { createRazorpayOrder, createRazorpayPaymentLink } from "@/lib/integrations/razorpay";
 import {
   computeCancellationBreakup,
   computePricingQuote,
@@ -446,4 +446,104 @@ async function hasVehicleBookingOverlap(
     const bookingEnd = new Date(booking.drop_at).getTime();
     return start < bookingEnd && end > bookingStart;
   });
+}
+
+export async function approveBooking(
+  bookingId: string,
+  actor: { userId: string; role: Role }
+) {
+  if (actor.role !== "admin") {
+    throw new ApiException(403, "forbidden", "Only admin can approve bookings.");
+  }
+
+  const booking = await getBookingOrThrow(bookingId);
+  
+  if (booking.status !== "pending_kyc") {
+    throw new ApiException(400, "invalid_state", "Booking must be in pending_kyc state to be approved.");
+  }
+
+  const user = await getUserOrThrow(booking.user_id);
+  
+  const supabase = getSupabaseServiceClient();
+  const { data: authUser } = await supabase.from("user").select("email").eq("id", user.id).single();
+  
+  const paymentLinkData = await createRazorpayPaymentLink({
+    amountInPaise: booking.quote.total_payable * 100,
+    receipt: booking.id,
+    description: `Payment for booking ${booking.id}`,
+    customer: {
+      name: user.name,
+      email: authUser?.email,
+    }
+  });
+
+  const updated = await updateBooking(booking.id, {
+    status: "payment_pending",
+    updated_at: new Date().toISOString()
+  });
+
+  await recordAudit({
+    actorId: actor.userId,
+    actorRole: actor.role,
+    action: "booking.approve",
+    resourceType: "booking",
+    resourceId: booking.id,
+    metadata: {
+      payment_link_id: paymentLinkData.id
+    }
+  });
+
+  try {
+    if (authUser?.email) {
+      await sendBookingApprovedEmail(authUser.email, booking, paymentLinkData.short_url);
+    }
+  } catch (e) {
+    console.error("Failed to send booking approval email:", e);
+  }
+
+  return updated;
+}
+
+export async function rejectBooking(
+  bookingId: string,
+  actor: { userId: string; role: Role }
+) {
+  if (actor.role !== "admin") {
+    throw new ApiException(403, "forbidden", "Only admin can reject bookings.");
+  }
+
+  const booking = await getBookingOrThrow(bookingId);
+  
+  if (booking.status !== "pending_kyc") {
+    throw new ApiException(400, "invalid_state", "Booking must be in pending_kyc state to be rejected.");
+  }
+
+  const updated = await updateBooking(booking.id, {
+    status: "cancelled",
+    cancel_reason: "kyc_rejected",
+    updated_at: new Date().toISOString()
+  });
+
+  await recordAudit({
+    actorId: actor.userId,
+    actorRole: actor.role,
+    action: "booking.reject",
+    resourceType: "booking",
+    resourceId: booking.id,
+    metadata: {
+      reason: "kyc_rejected"
+    }
+  });
+
+  try {
+    const supabase = getSupabaseServiceClient();
+    const { data: authUser } = await supabase.from("user").select("email").eq("id", booking.user_id).single();
+    if (authUser?.email) {
+      await sendBookingRejectedEmail(authUser.email, booking);
+    }
+  } catch (e) {
+    console.error("Failed to send booking rejection email:", e);
+  }
+
+  return updated;
 }

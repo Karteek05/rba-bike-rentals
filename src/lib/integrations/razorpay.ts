@@ -153,3 +153,62 @@ export function verifyRazorpaySignature(params: {
     .digest("hex");
   return digest === params.signature;
 }
+
+export async function createRazorpayPaymentLink(params: {
+  amountInPaise: number;
+  currency?: "INR";
+  receipt: string;
+  description: string;
+  customer?: {
+    name?: string;
+    email?: string;
+    contact?: string;
+  };
+}) {
+  const keyId = process.env.RAZORPAY_KEY_ID;
+  const keySecret = process.env.RAZORPAY_KEY_SECRET;
+  if (!keyId || !keySecret) {
+    throw new ApiException(
+      500,
+      "razorpay_env_missing",
+      "Razorpay keys are not configured."
+    );
+  }
+
+  const authHeader = Buffer.from(`${keyId}:${keySecret}`).toString("base64");
+  const response = await fetch("https://api.razorpay.com/v1/payment_links", {
+    method: "POST",
+    headers: {
+      Authorization: `Basic ${authHeader}`,
+      "Content-Type": "application/json"
+    },
+    body: JSON.stringify({
+      amount: params.amountInPaise,
+      currency: params.currency ?? "INR",
+      accept_partial: false,
+      reference_id: params.receipt,
+      description: params.description,
+      customer: params.customer,
+      notify: {
+        sms: false,
+        email: false
+      },
+      reminder_enable: true,
+      notes: {
+        platform: "rbabikerentals"
+      }
+    })
+  });
+
+  if (!response.ok) {
+    const text = await response.text();
+    throw new ApiException(502, "razorpay_payment_link_failed", text);
+  }
+
+  const data = await response.json();
+  return {
+    id: data.id,
+    short_url: data.short_url,
+    status: data.status
+  };
+}
