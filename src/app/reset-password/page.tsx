@@ -67,7 +67,7 @@ export default function ResetPasswordPage() {
           {success ? (
             <div className="text-center">
               <div className="mb-4 text-green-600">
-                <Icon name="check" className="h-12 w-12 mx-auto" />
+                <Icon name="checkCircle" className="h-12 w-12 mx-auto" />
               </div>
               <p className="text-brand-dark font-bold text-lg mb-2">Password Reset Successful</p>
               <p className="text-sm text-[#526074] mb-6">

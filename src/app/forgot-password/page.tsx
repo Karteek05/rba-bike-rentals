@@ -17,7 +17,7 @@ export default function ForgotPasswordPage() {
     setLoading(true);
     setError("");
 
-    const { error } = await authClient.forgetPassword({
+    const { error } = await (authClient as any).requestPasswordReset({
       email,
       redirectTo: "/reset-password",
     });
@@ -56,7 +56,7 @@ export default function ForgotPasswordPage() {
           {success ? (
             <div className="text-center">
               <div className="mb-4 text-green-600">
-                <Icon name="check" className="h-12 w-12 mx-auto" />
+                <Icon name="checkCircle" className="h-12 w-12 mx-auto" />
               </div>
               <p className="text-brand-dark font-bold text-lg mb-2">Check your email</p>
               <p className="text-sm text-[#526074] mb-6">
