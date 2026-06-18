@@ -13,6 +13,9 @@ if (!authSecret) {
 }
 
 export const auth = betterAuth({
+  advanced: {
+    cookiePrefix: "rba"
+  },
   basePath: process.env.BETTER_AUTH_BASE_PATH ?? "/api/auth",
   baseURL: process.env.BETTER_AUTH_URL ?? process.env.APP_BASE_URL,
   secret: authSecret,
