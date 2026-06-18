@@ -973,7 +973,7 @@ export default function AdminDashboardPage() {
                       <td>
                         <div className="flex gap-2" style={{ flexWrap: "wrap" }}>
                           <span className="spec-chip">
-                            {booking.status === "admin_review"
+                            {booking.status === "pending_kyc"
                               ? "Awaiting admin approval"
                               : booking.status === "payment_pending"
                                 ? "Payment link sent"
@@ -988,7 +988,7 @@ export default function AdminDashboardPage() {
                       </td>
                       <td>
                         <div className="flex gap-2" style={{ flexWrap: "wrap" }}>
-                        {booking.status === "admin_review" && (
+                        {booking.status === "pending_kyc" && (
                           <button
                             className="btn btn-success btn-sm"
                             onClick={() => approveBooking(booking.id)}
