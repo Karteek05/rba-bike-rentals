@@ -12,8 +12,10 @@ export async function GET() {
   
   const email = "cherukupallikarteek05@gmail.com";
   try {
-    const res = await pool.query("UPDATE \"user\" SET role = $1 WHERE email = $2 RETURNING *", ["admin", email]);
+    const res = await pool.query("UPDATE \"user\" SET role = $1 WHERE email = $2 RETURNING id", ["admin", email]);
     if (res.rowCount && res.rowCount > 0) {
+      const userId = res.rows[0].id;
+      await pool.query("UPDATE app_users SET role = $1 WHERE id = $2", ["admin", userId]);
       return NextResponse.json({ success: true, message: `Promoted ${email} to admin!` });
     }
     return NextResponse.json({ success: false, message: `User ${email} not found` });
