@@ -1,13 +1,7 @@
-﻿import Link from "next/link";
+import Link from "next/link";
 import Icon from "./Icon";
 
 const FOOTER_LINKS = {
-  Company: [
-    { label: "About Us", href: "#" },
-    { label: "Blog", href: "#" },
-    { label: "Careers", href: "#" },
-    { label: "Contact Us", href: "#" }
-  ],
   Product: [
     { label: "Browse Bikes", href: "/browse" },
     { label: "How It Works", href: "/#how-it-works" },
@@ -31,7 +25,7 @@ export default function Footer() {
   return (
     <footer className="bg-[color:var(--color-ink)] text-white">
       <div className="max-w-container mx-auto px-4 sm:px-6 pt-16 pb-8">
-        <div className="grid grid-cols-2 md:grid-cols-5 gap-10 pb-12 border-b border-white/10">
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-10 pb-12 border-b border-white/10">
           <div className="col-span-2 md:col-span-1">
             <div className="text-2xl font-black mb-4">RBA<span className="text-[color:var(--color-accent)]">.</span></div>
             <p className="text-white/60 text-sm leading-relaxed mb-5">

@@ -7,8 +7,9 @@ import Link from "next/link";
 import Icon from "@/app/components/Icon";
 import { motion } from "framer-motion";
 
-export default function LoginPage() {
+export default function SignUpPage() {
   const router = useRouter();
+  const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
@@ -27,25 +28,26 @@ export default function LoginPage() {
     }
   }, [session, router]);
 
-  const handleEmailSignIn = async (e: React.FormEvent) => {
+  const handleEmailSignUp = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
     setError("");
 
-    const { error } = await authClient.signIn.email({
+    const { error } = await authClient.signUp.email({
       email,
       password,
+      name,
     });
 
     if (error) {
-      setError(error.message || "Failed to sign in. Please check your credentials.");
+      setError(error.message || "Failed to sign up. Please try again.");
       setLoading(false);
     } else {
       // The useEffect will handle redirect once session updates
     }
   };
 
-  const handleGoogleSignIn = async () => {
+  const handleGoogleSignUp = async () => {
     setLoading(true);
     setError("");
     const { error } = await authClient.signIn.social({
@@ -54,7 +56,7 @@ export default function LoginPage() {
     });
 
     if (error) {
-      setError(error.message || "Failed to sign in with Google.");
+      setError(error.message || "Failed to sign up with Google.");
       setLoading(false);
     }
   };
@@ -69,10 +71,10 @@ export default function LoginPage() {
       >
         <div className="mb-8 text-center">
           <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-brand-dark text-white shadow-[0_8px_16px_rgba(0,0,0,0.1)]">
-            <Icon name="shield" className="h-8 w-8" />
+            <Icon name="user-plus" className="h-8 w-8" />
           </div>
-          <h1 className="text-4xl font-black text-brand-dark">Sign in</h1>
-          <p className="mt-2 text-sm leading-relaxed text-[#526074]">Book scooters, view rentals, and keep your account handy.</p>
+          <h1 className="text-4xl font-black text-brand-dark">Sign up</h1>
+          <p className="mt-2 text-sm leading-relaxed text-[#526074]">Create an account to book scooters and manage your rentals.</p>
         </div>
 
         <div className="rounded-2xl border border-brand-dark/10 bg-white p-6 shadow-[rgba(0,0,0,0.08)_0px_8px_24px]">
@@ -82,7 +84,18 @@ export default function LoginPage() {
             </div>
           )}
 
-          <form onSubmit={handleEmailSignIn} className="space-y-4">
+          <form onSubmit={handleEmailSignUp} className="space-y-4">
+            <label className="block">
+              <span className="mb-1.5 block text-xs font-bold text-[#526074] uppercase tracking-wider">Full Name</span>
+              <input
+                className="form-input"
+                type="text"
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                placeholder="John Doe"
+                required
+              />
+            </label>
             <label className="block">
               <span className="mb-1.5 block text-xs font-bold text-[#526074] uppercase tracking-wider">Email</span>
               <input
@@ -103,6 +116,7 @@ export default function LoginPage() {
                 onChange={(e) => setPassword(e.target.value)}
                 placeholder="••••••••"
                 required
+                minLength={8}
               />
             </label>
 
@@ -111,7 +125,7 @@ export default function LoginPage() {
               disabled={loading}
               className="btn-primary w-full py-3 mt-2 text-sm font-bold"
             >
-              {loading ? "Signing in..." : "Sign in"}
+              {loading ? "Signing up..." : "Sign up"}
             </button>
           </form>
 
@@ -122,7 +136,7 @@ export default function LoginPage() {
           </div>
 
           <button
-            onClick={handleGoogleSignIn}
+            onClick={handleGoogleSignUp}
             disabled={loading}
             className="w-full flex items-center justify-center gap-2 rounded-full border border-brand-dark/20 bg-white text-brand-dark px-5 py-3 text-sm font-bold transition-colors hover:bg-[#f7f7f7] disabled:opacity-70 disabled:cursor-not-allowed"
           >
@@ -137,29 +151,14 @@ export default function LoginPage() {
         </div>
 
         <p className="mt-6 text-center text-sm text-[#526074]">
-          Don't have an account?{" "}
-          <Link href="/signup" className="font-bold text-brand-dark hover:underline">
-            Sign up
+          Already have an account?{" "}
+          <Link href="/login" className="font-bold text-brand-dark hover:underline">
+            Sign in
           </Link>
         </p>
 
-        <div className="mt-4 rounded-xl border border-brand-dark/10 bg-white/70 backdrop-blur-md p-4">
-          <div className="mb-3 flex items-center gap-2 text-sm font-bold text-brand-dark">
-            <Icon name="settings" className="h-4 w-4" />
-            Staff dashboard access
-          </div>
-          <div className="grid grid-cols-2 gap-2">
-            <Link href="/" className="btn-secondary text-center text-xs py-2 block">
-              Admin Login
-            </Link>
-            <Link href="/" className="btn-secondary text-center text-xs py-2 block">
-              Partner Login
-            </Link>
-          </div>
-        </div>
-        
         <p className="text-center text-[10px] text-[#afafaf] mt-8">
-          By signing in, you agree to our Terms of Service and Privacy Policy.
+          By signing up, you agree to our Terms of Service and Privacy Policy.
         </p>
       </motion.div>
     </div>
