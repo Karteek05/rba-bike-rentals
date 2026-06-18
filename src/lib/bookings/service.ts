@@ -1,5 +1,7 @@
 import { assertCanTransition } from "@/lib/bookings/state-machine";
 import { recordAudit } from "@/lib/audit/service";
+import { getSupabaseServiceClient } from "@/lib/db/supabase-client";
+import { sendBookingConfirmationEmail } from "@/lib/notifications/service";
 import {
   assertBengaluruCity,
   getBookingOrThrow,
@@ -171,6 +173,16 @@ export async function createBooking(
       initial_status: booking.status
     }
   });
+
+  try {
+    const supabase = getSupabaseServiceClient();
+    const { data: authUser } = await supabase.from("user").select("email").eq("id", user.id).single();
+    if (authUser?.email) {
+      await sendBookingConfirmationEmail(authUser.email, booking);
+    }
+  } catch (e) {
+    console.error("Failed to send booking confirmation email:", e);
+  }
 
   return {
     ...booking,

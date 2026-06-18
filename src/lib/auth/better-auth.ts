@@ -1,5 +1,6 @@
 import { betterAuth } from "better-auth";
 import { Pool } from "pg";
+import { sendResetPasswordEmail } from "@/lib/notifications/service";
 
 const dbUrl = process.env.SUPABASE_DB_URL ?? process.env.DATABASE_URL;
 const isProduction = process.env.APP_ENV === "production";
@@ -22,7 +23,10 @@ export const auth = betterAuth({
       })
     : undefined,
   emailAndPassword: {
-    enabled: true
+    enabled: true,
+    sendResetPassword: async ({ user, url, token }, request) => {
+      await sendResetPasswordEmail(user.email, url);
+    }
   },
   socialProviders: {
     google: {
