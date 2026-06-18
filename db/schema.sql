@@ -15,8 +15,13 @@ exception when duplicate_object then null;
 end $$;
 
 do $$ begin
-  create type booking_status_type as enum ('draft', 'pending_kyc', 'payment_pending', 'confirmed', 'ongoing', 'extension_requested', 'extended', 'completed', 'cancelled');
+  create type booking_status_type as enum ('draft', 'pending_kyc', 'admin_review', 'payment_pending', 'confirmed', 'ongoing', 'extension_requested', 'extended', 'completed', 'cancelled');
 exception when duplicate_object then null;
+end $$;
+
+do $$ begin
+  alter type booking_status_type add value if not exists 'admin_review' after 'pending_kyc';
+exception when duplicate_object or duplicate_table then null;
 end $$;
 
 do $$ begin
@@ -29,16 +34,89 @@ do $$ begin
 exception when duplicate_object then null;
 end $$;
 
+-- Better Auth persistence tables.
+-- These are used by the server-side Better Auth Postgres adapter when
+-- SUPABASE_DB_URL or DATABASE_URL is configured.
+create table if not exists "user" (
+  id text primary key,
+  name text not null,
+  email text not null unique,
+  "emailVerified" boolean not null,
+  image text,
+  "createdAt" timestamptz not null,
+  "updatedAt" timestamptz not null,
+  "phoneNumber" text unique,
+  "phoneNumberVerified" boolean,
+  role text
+);
+alter table if exists "user" add column if not exists "phoneNumber" text;
+alter table if exists "user" add column if not exists "phoneNumberVerified" boolean;
+alter table if exists "user" add column if not exists role text;
+create unique index if not exists idx_better_auth_user_email on "user"(email);
+create unique index if not exists idx_better_auth_user_phone_number on "user"("phoneNumber");
+
+create table if not exists session (
+  id text primary key,
+  "expiresAt" timestamptz not null,
+  token text not null unique,
+  "createdAt" timestamptz not null,
+  "updatedAt" timestamptz not null,
+  "ipAddress" text,
+  "userAgent" text,
+  "userId" text not null references "user"(id) on delete cascade
+);
+create unique index if not exists idx_better_auth_session_token on session(token);
+create index if not exists idx_better_auth_session_user_id on session("userId");
+
+create table if not exists account (
+  id text primary key,
+  "accountId" text not null,
+  "providerId" text not null,
+  "userId" text not null references "user"(id) on delete cascade,
+  "accessToken" text,
+  "refreshToken" text,
+  "idToken" text,
+  "accessTokenExpiresAt" timestamptz,
+  "refreshTokenExpiresAt" timestamptz,
+  scope text,
+  password text,
+  "createdAt" timestamptz not null,
+  "updatedAt" timestamptz not null
+);
+create index if not exists idx_better_auth_account_user_id on account("userId");
+
+create table if not exists verification (
+  id text primary key,
+  identifier text not null,
+  value text not null,
+  "expiresAt" timestamptz not null,
+  "createdAt" timestamptz not null,
+  "updatedAt" timestamptz not null
+);
+create index if not exists idx_better_auth_verification_identifier on verification(identifier);
+
 create table if not exists app_users (
   id text primary key,
   role role_type not null,
   name text not null,
   city text not null default 'bengaluru',
   kyc_status kyc_status_type not null default 'not_started',
+  email text,
+  phone text,
+  pan_number text,
+  date_of_birth date,
+  cibil_consent_at timestamptz,
+  deleted_at timestamptz,
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now(),
   constraint app_users_city_check check (city = 'bengaluru')
 );
+alter table if exists app_users add column if not exists email text;
+alter table if exists app_users add column if not exists phone text;
+alter table if exists app_users add column if not exists pan_number text;
+alter table if exists app_users add column if not exists date_of_birth date;
+alter table if exists app_users add column if not exists cibil_consent_at timestamptz;
+alter table if exists app_users add column if not exists deleted_at timestamptz;
 
 create table if not exists vehicles (
   id text primary key,
@@ -68,6 +146,10 @@ create table if not exists bookings (
   status booking_status_type not null default 'draft',
   pickup_at timestamptz not null,
   drop_at timestamptz not null,
+  pickup_zone text,
+  pickup_address text,
+  pickup_latitude double precision,
+  pickup_longitude double precision,
   km_limit_bucket text not null,
   km_limit_value integer not null,
   coupon_code text,
@@ -78,23 +160,38 @@ create table if not exists bookings (
   constraint bookings_city_check check (city = 'bengaluru'),
   constraint bookings_window_check check (pickup_at < drop_at)
 );
+alter table if exists bookings add column if not exists pickup_zone text;
+alter table if exists bookings add column if not exists pickup_address text;
+alter table if exists bookings add column if not exists pickup_latitude double precision;
+alter table if exists bookings add column if not exists pickup_longitude double precision;
 
 create index if not exists idx_bookings_vehicle_window on bookings(vehicle_id, pickup_at, drop_at);
 create index if not exists idx_bookings_status on bookings(status);
 create index if not exists idx_bookings_user on bookings(user_id);
+create index if not exists idx_bookings_status_created_at on bookings(status, created_at);
 
 do $$ begin
-  alter table bookings
-    add constraint bookings_vehicle_active_window_excl
-    exclude using gist (
-      vehicle_id with =,
-      tstzrange(pickup_at, drop_at, '[)') with &&
-    )
-    where (
-      status <> 'cancelled'::booking_status_type
-      and status <> 'completed'::booking_status_type
-    );
-exception when duplicate_object then null;
+  if not exists (
+    select 1
+    from pg_constraint
+    where conname = 'bookings_vehicle_active_window_excl'
+  )
+  and not exists (
+    select 1
+    from pg_class
+    where relname = 'bookings_vehicle_active_window_excl'
+  ) then
+    alter table bookings
+      add constraint bookings_vehicle_active_window_excl
+      exclude using gist (
+        vehicle_id with =,
+        tstzrange(pickup_at, drop_at, '[)') with &&
+      )
+      where (
+        status <> 'cancelled'::booking_status_type
+        and status <> 'completed'::booking_status_type
+      );
+  end if;
 end $$;
 
 create table if not exists kyc_records (
@@ -107,10 +204,16 @@ create table if not exists kyc_records (
   aadhaar_verified boolean not null default false,
   dl_verified boolean not null default false,
   cibil_score integer,
+  cibil_risk_band text,
+  cibil_checked_at timestamptz,
+  pan_last4 text,
   needs_manual_review boolean not null default false,
   failure_reason text,
   updated_at timestamptz not null default now()
 );
+alter table if exists kyc_records add column if not exists cibil_risk_band text;
+alter table if exists kyc_records add column if not exists cibil_checked_at timestamptz;
+alter table if exists kyc_records add column if not exists pan_last4 text;
 
 create table if not exists vehicle_block_windows (
   id text primary key,
@@ -168,12 +271,18 @@ create table if not exists payment_orders (
   booking_id text not null references bookings(id),
   provider text not null default 'razorpay',
   provider_order_id text not null unique,
+  provider_payment_id text,
+  provider_refund_id text,
   amount integer not null,
+  refunded_amount integer,
   currency text not null default 'INR',
   status payment_status_type not null default 'created',
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now()
 );
+alter table if exists payment_orders add column if not exists provider_payment_id text;
+alter table if exists payment_orders add column if not exists provider_refund_id text;
+alter table if exists payment_orders add column if not exists refunded_amount integer;
 
 create unique index if not exists idx_payment_orders_booking_created
 on payment_orders(booking_id)

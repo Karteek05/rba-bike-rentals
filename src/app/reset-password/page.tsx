@@ -1,13 +1,13 @@
 "use client";
 
-import { useState } from "react";
+import { Suspense, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { authClient } from "@/lib/auth/auth-client";
 import Link from "next/link";
 import Icon from "@/app/components/Icon";
 import { motion } from "framer-motion";
 
-export default function ResetPasswordPage() {
+function ResetPasswordForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const token = searchParams.get("token") || undefined;
@@ -121,5 +121,13 @@ export default function ResetPasswordPage() {
         </div>
       </motion.div>
     </div>
+  );
+}
+
+export default function ResetPasswordPage() {
+  return (
+    <Suspense fallback={<div className="min-h-screen bg-[#f7f7f7]" />}>
+      <ResetPasswordForm />
+    </Suspense>
   );
 }

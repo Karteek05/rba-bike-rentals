@@ -11,6 +11,7 @@ export type KycStatus =
 export type BookingStatus =
   | "draft"
   | "pending_kyc"
+  | "admin_review"
   | "payment_pending"
   | "confirmed"
   | "ongoing"
@@ -37,6 +38,12 @@ export interface User {
   role: Role;
   city: "bengaluru";
   kyc_status: KycStatus;
+  email?: string | null;
+  phone?: string | null;
+  pan_number?: string | null;
+  date_of_birth?: string | null;
+  cibil_consent_at?: string | null;
+  deleted_at?: string | null;
 }
 
 export interface Vehicle {
@@ -73,6 +80,10 @@ export interface Booking {
   status: BookingStatus;
   pickup_at: string;
   drop_at: string;
+  pickup_zone?: string | null;
+  pickup_address?: string | null;
+  pickup_latitude?: number | null;
+  pickup_longitude?: number | null;
   quote: PricingQuote;
   coupon_code?: string;
   km_limit_bucket: "day" | "week" | "month";
@@ -118,6 +129,9 @@ export interface KycRecord {
   aadhaar_verified: boolean;
   dl_verified: boolean;
   cibil_score?: number | null;
+  cibil_risk_band?: "low" | "medium" | "high" | "unknown" | null;
+  cibil_checked_at?: string | null;
+  pan_last4?: string | null;
   needs_manual_review: boolean;
   failure_reason?: string;
   updated_at: string;
@@ -139,7 +153,10 @@ export interface PaymentOrder {
   booking_id: string;
   provider: "razorpay";
   provider_order_id: string;
+  provider_payment_id?: string | null;
+  provider_refund_id?: string | null;
   amount: number;
+  refunded_amount?: number | null;
   currency: "INR";
   status: "created" | "paid" | "failed" | "refunded";
   created_at: string;
@@ -166,7 +183,7 @@ export interface VehicleDocument {
 
 export interface NotificationJob {
   id: string;
-  channel: "sms" | "whatsapp" | "email";
+  channel: "sms" | "whatsapp" | "email" | "in_app";
   template_key: string;
   recipient: string;
   payload: Record<string, unknown>;

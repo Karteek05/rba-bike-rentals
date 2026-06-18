@@ -1,10 +1,13 @@
+import { loadEnvConfig } from "@next/env";
 import {
-  upsertKycRecord,
   upsertUser,
   upsertVehicle,
   insertVehicleDocument,
   upsertVehicleLiveLocation
 } from "@/lib/data/repository";
+import { PUBLIC_FLEET } from "@/lib/fleet/catalog";
+
+loadEnvConfig(process.cwd());
 
 async function run() {
   await upsertUser({
@@ -12,14 +15,18 @@ async function run() {
     name: "Rahul Customer",
     role: "customer",
     city: "bengaluru",
-    kyc_status: "verified"
+    kyc_status: "not_started",
+    email: "rahul@example.com",
+    phone: "+919876543210"
   });
   await upsertUser({
     id: "cust_002",
     name: "Asha Customer",
     role: "customer",
     city: "bengaluru",
-    kyc_status: "not_started"
+    kyc_status: "not_started",
+    email: "asha@example.com",
+    phone: "+919876543211"
   });
   await upsertUser({
     id: "partner_001",
@@ -36,51 +43,23 @@ async function run() {
     kyc_status: "verified"
   });
 
-  await upsertVehicle({
-    id: "veh_001",
-    owner_id: "partner_001",
-    city: "bengaluru",
-    category: "scooter",
-    brand: "Honda",
-    model: "Activa 6G",
-    image_urls: ["/images/services/activa-6g.svg"],
-    is_active: true,
-    deposit_amount: 2000,
-    rate_per_hour: 120,
-    rate_per_day: 750,
-    rate_per_week: 4200,
-    rate_per_month: 15000
-  });
-  await upsertVehicle({
-    id: "veh_002",
-    owner_id: "partner_001",
-    city: "bengaluru",
-    category: "bike",
-    brand: "Yamaha",
-    model: "MT-15",
-    image_urls: ["/images/services/access-125.svg"],
-    is_active: true,
-    deposit_amount: 3000,
-    rate_per_hour: 180,
-    rate_per_day: 1200,
-    rate_per_week: 7000,
-    rate_per_month: 25000
-  });
-  await upsertVehicle({
-    id: "veh_003",
-    owner_id: "partner_001",
-    city: "bengaluru",
-    category: "ev_bike",
-    brand: "TVS",
-    model: "iQube",
-    image_urls: ["/images/services/access-125.svg"],
-    is_active: true,
-    deposit_amount: 2500,
-    rate_per_hour: 140,
-    rate_per_day: 900,
-    rate_per_week: 5000,
-    rate_per_month: 17000
-  });
+  for (const vehicle of PUBLIC_FLEET) {
+    await upsertVehicle({
+      id: vehicle.id,
+      owner_id: "partner_001",
+      city: vehicle.city,
+      category: vehicle.category,
+      brand: vehicle.brand,
+      model: vehicle.model,
+      image_urls: [vehicle.image],
+      is_active: vehicle.is_active,
+      deposit_amount: vehicle.deposit_amount,
+      rate_per_hour: vehicle.rate_per_hour,
+      rate_per_day: vehicle.rate_per_day,
+      rate_per_week: vehicle.rate_per_week,
+      rate_per_month: vehicle.rate_per_month
+    });
+  }
 
   await upsertVehicleLiveLocation({
     vehicle_id: "veh_001",
@@ -107,27 +86,6 @@ async function run() {
     speed_kmph: 0,
     heading_deg: 0,
     source: "seed_simulator",
-    updated_at: new Date().toISOString()
-  });
-
-  await upsertKycRecord({
-    user_id: "cust_001",
-    status: "verified",
-    provider: "setu_digilocker",
-    request_id: "seed_kyc_req_1",
-    aadhaar_verified: true,
-    dl_verified: true,
-    needs_manual_review: false,
-    updated_at: new Date().toISOString()
-  });
-  await upsertKycRecord({
-    user_id: "cust_002",
-    status: "not_started",
-    provider: "setu_digilocker",
-    request_id: "seed_kyc_req_2",
-    aadhaar_verified: false,
-    dl_verified: false,
-    needs_manual_review: false,
     updated_at: new Date().toISOString()
   });
 

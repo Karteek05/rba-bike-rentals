@@ -58,9 +58,12 @@ Never enable `ALLOW_DEV_HEADERS=true` in staging or production.
 - `DELETE /api/admin/vehicles/[id]`
 - `POST /api/admin/vehicles/[id]/images`
 - `POST /api/payments/order`
+- `POST /api/payments/refund`
 - `POST /api/webhooks/razorpay`
 - `POST /api/kyc/digilocker/callback`
 - `GET /api/kyc/digilocker/status/[requestId]`
+- `POST /api/maps/distance`
+- `POST /api/maps/reverse-geocode`
 - `GET /api/admin/kyc/manual-review`
 - `POST /api/admin/kyc/[userId]/approve`
 - `POST /api/admin/kyc/[userId]/reject`
@@ -81,8 +84,12 @@ Never enable `ALLOW_DEV_HEADERS=true` in staging or production.
 Security-sensitive environment variables to configure before staging/production:
 - `BETTER_AUTH_SECRET`
 - `BETTER_AUTH_URL`
+- `GOOGLE_CLIENT_ID`
+- `GOOGLE_CLIENT_SECRET`
+- `SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`, `SMTP_PASS`, `EMAIL_FROM`, `ADMIN_EMAIL`
 - `RAZORPAY_WEBHOOK_SECRET`
 - `SETU_WEBHOOK_SECRET`
+- `CIBIL_PROVIDER_MODE` (`mock` until provider contract keys are available)
 - `JOB_SECRET`
 - Supabase service credentials
 

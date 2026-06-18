@@ -60,6 +60,7 @@ const VEHICLE_ICONS: Record<string, IconName> = {
   veh_003: "scooter"
 };
 
+
 const UPI_ID = process.env.NEXT_PUBLIC_UPI_ID || "rbabikerentals@upi";
 
 const STATUS_STYLES: Record<string, string> = {
@@ -103,7 +104,7 @@ function getQrImageUrl(booking: Booking) {
 }
 
 export default function MyBookingsPage() {
-  const { data: session } = authClient.useSession();
+  const { data: session, isPending: sessionPending } = authClient.useSession();
   const customerName = session?.user?.name || session?.user?.email || "Customer";
   
   const [bookings, setBookings] = useState<Booking[]>([]);
@@ -150,9 +151,17 @@ export default function MyBookingsPage() {
   }, []);
 
   useEffect(() => {
+    if (sessionPending) return;
+    if (!session?.user) {
+      setBookings([]);
+      setNotifications([]);
+      setError("Please sign in to view your bookings.");
+      setLoading(false);
+      return;
+    }
     fetchBookings();
     fetchNotifications();
-  }, [fetchBookings, fetchNotifications]);
+  }, [fetchBookings, fetchNotifications, session?.user?.id, sessionPending]);
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
@@ -191,6 +200,11 @@ export default function MyBookingsPage() {
         return;
       }
       const order = json.data.order;
+      if (order?.provider === "upi_fallback" || !order?.key_id || !order?.order_id) {
+        setQrBookingId(booking.id);
+        showSuccess("Razorpay checkout is not configured. Scan the QR below to pay this booking amount.");
+        return;
+      }
       const loaded = await loadRazorpayScript();
       if (!loaded || !window.Razorpay) {
         setQrBookingId(booking.id);

@@ -12,6 +12,11 @@ const NAV_LINKS = [
   { href: "/my-bookings", label: "My Bookings" }
 ];
 
+type AccountState = {
+  authenticated: boolean;
+  user: { name?: string; email?: string | null; role?: string } | null;
+};
+
 function isLinkActive(pathname: string, href: string) {
   if (href === "/#how-it-works") {
     return pathname === "/";
@@ -68,6 +73,12 @@ export default function Navbar() {
   const initial = displayName.trim().charAt(0).toUpperCase() || "C";
   const role = session?.user ? ((session.user as any).role as string) : null;
   const dashboardHref = role === "admin" ? "/admin" : role === "partner_investor" ? "/partner" : role === "customer" ? "/customer" : null;
+  const authMode =
+    pathname === "/signup"
+      ? "register"
+      : pathname === "/login"
+        ? "signin"
+        : null;
 
   return (
     <header className="sticky top-0 z-50 border-b border-[color:var(--color-line)] bg-[color:var(--color-paper)]/95 backdrop-blur-md">
@@ -109,21 +120,20 @@ export default function Navbar() {
         </nav>
 
         <div className="flex items-center gap-2 sm:gap-3">
-          <Link
-            href="/dashboard-access"
-            className="nav-focus hidden rounded-full px-3.5 py-2 text-sm font-semibold text-[color:var(--color-copy)] hover:bg-white lg:inline-flex"
-          >
-            Staff Login
-          </Link>
-
           {session?.user ? (
             <div className="hidden items-center gap-2 rounded-full border border-[color:var(--color-line)] bg-white px-3 py-1.5 md:flex">
-              <span className="flex h-8 w-8 items-center justify-center rounded-full bg-[color:var(--color-ink)] text-xs font-black text-white">
-                {initial}
-              </span>
-              <span className="max-w-[150px] truncate text-xs font-bold text-[color:var(--color-ink)]">
-                {displayName}
-              </span>
+              <Link
+                href="/profile"
+                className="nav-focus flex min-w-0 items-center gap-2 rounded-full pr-1"
+                aria-label="Open profile"
+              >
+                <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-[color:var(--color-ink)] text-xs font-black text-white">
+                  {initial}
+                </span>
+                <span className="max-w-[150px] truncate text-xs font-bold text-[color:var(--color-ink)]">
+                  {displayName}
+                </span>
+              </Link>
               <button
                 type="button"
                 onClick={signOut}
@@ -134,12 +144,28 @@ export default function Navbar() {
               </button>
             </div>
           ) : (
-            <Link
-              href="/login"
-              className="nav-focus hidden rounded-full px-3.5 py-2 text-sm font-semibold text-[color:var(--color-copy)] hover:bg-white md:inline-flex"
-            >
-              Login / Register
-            </Link>
+            <div className="hidden items-center gap-1 rounded-full border border-[color:var(--color-line)] bg-white/80 p-1 shadow-sm md:flex">
+              <Link
+                href="/login"
+                className={`nav-focus rounded-full px-3.5 py-2 text-sm font-semibold transition-colors ${
+                  authMode === "signin"
+                    ? "bg-[color:var(--color-ink)] text-white shadow-sm"
+                    : "text-[color:var(--color-copy)] hover:bg-[color:var(--color-paper-2)] hover:text-[color:var(--color-ink)]"
+                }`}
+              >
+                Login
+              </Link>
+              <Link
+                href="/signup"
+                className={`nav-focus rounded-full px-4 py-2 text-sm font-black transition-colors ${
+                  authMode === "register"
+                    ? "bg-[color:var(--color-ink)] text-white shadow-sm"
+                    : "text-[color:var(--color-copy)] hover:bg-[color:var(--color-paper-2)] hover:text-[color:var(--color-ink)]"
+                }`}
+              >
+                Register
+              </Link>
+            </div>
           )}
 
           <Link
@@ -197,31 +223,53 @@ export default function Navbar() {
             )}
 
             {session?.user ? (
-              <button
-                type="button"
-                className="nav-focus mt-2 flex items-center justify-between gap-3 rounded-lg bg-white px-4 py-3 text-sm font-semibold text-[color:var(--color-ink)]"
-                onClick={signOut}
-              >
-                <span className="truncate">Signed in as {displayName}</span>
-                <LogOut className="h-4 w-4 shrink-0" />
-              </button>
+              <>
+                <Link
+                  href="/profile"
+                  className={`nav-focus rounded-lg px-4 py-3 text-sm font-semibold transition-colors ${
+                    pathname === "/profile"
+                      ? "bg-[color:var(--color-ink)] text-white"
+                      : "text-[color:var(--color-ink)] hover:bg-[color:var(--color-paper-2)]"
+                  }`}
+                  onClick={() => setOpen(false)}
+                >
+                  Profile
+                </Link>
+                <button
+                  type="button"
+                  className="nav-focus mt-2 flex items-center justify-between gap-3 rounded-lg bg-white px-4 py-3 text-sm font-semibold text-[color:var(--color-ink)]"
+                  onClick={signOut}
+                >
+                  <span className="truncate">Signed in as {displayName}</span>
+                  <LogOut className="h-4 w-4 shrink-0" />
+                </button>
+              </>
             ) : (
-              <Link
-                href="/login"
-                className="nav-focus rounded-lg px-4 py-3 text-sm font-semibold text-[color:var(--color-ink)] hover:bg-[color:var(--color-paper-2)]"
-                onClick={() => setOpen(false)}
-              >
-                Login / Register
-              </Link>
+              <>
+                <Link
+                  href="/login"
+                  className={`nav-focus rounded-lg px-4 py-3 text-sm font-semibold ${
+                    authMode === "signin"
+                      ? "bg-[color:var(--color-ink)] text-white"
+                      : "text-[color:var(--color-ink)] hover:bg-[color:var(--color-paper-2)]"
+                  }`}
+                  onClick={() => setOpen(false)}
+                >
+                  Login
+                </Link>
+                <Link
+                  href="/signup"
+                  className={`nav-focus rounded-lg px-4 py-3 text-sm font-black ${
+                    authMode === "register"
+                      ? "bg-[color:var(--color-ink)] text-white"
+                      : "text-[color:var(--color-ink)] hover:bg-[color:var(--color-paper-2)]"
+                  }`}
+                  onClick={() => setOpen(false)}
+                >
+                  Register
+                </Link>
+              </>
             )}
-
-            <Link
-              href="/dashboard-access"
-              className="nav-focus rounded-lg px-4 py-3 text-sm font-semibold text-[color:var(--color-ink)] hover:bg-[color:var(--color-paper-2)]"
-              onClick={() => setOpen(false)}
-            >
-              Staff Login
-            </Link>
 
             <Link
               href="/browse"

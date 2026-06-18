@@ -1,12 +1,15 @@
 import { betterAuth } from "better-auth";
 import { Pool } from "pg";
 import { sendResetPasswordEmail } from "@/lib/notifications/service";
+import { getServerAppBaseUrl } from "@/lib/utils/app-url";
 
 const dbUrl = process.env.SUPABASE_DB_URL ?? process.env.DATABASE_URL;
 const isProduction = process.env.APP_ENV === "production";
 const authSecret =
   process.env.BETTER_AUTH_SECRET ??
   (isProduction ? undefined : "rbabikerentals-dev-secret-change-in-prod");
+const googleClientId = process.env.GOOGLE_CLIENT_ID?.trim();
+const googleClientSecret = process.env.GOOGLE_CLIENT_SECRET?.trim();
 
 if (!authSecret) {
   throw new Error("BETTER_AUTH_SECRET is required when APP_ENV=production.");
@@ -17,7 +20,7 @@ export const auth = betterAuth({
     cookiePrefix: "rba"
   },
   basePath: process.env.BETTER_AUTH_BASE_PATH ?? "/api/auth",
-  baseURL: process.env.BETTER_AUTH_URL ?? process.env.APP_BASE_URL,
+  baseURL: getServerAppBaseUrl(),
   secret: authSecret,
   database: dbUrl
     ? new Pool({
@@ -31,12 +34,15 @@ export const auth = betterAuth({
       await sendResetPasswordEmail(user.email, url);
     }
   },
-  socialProviders: {
-    google: {
-      clientId: process.env.GOOGLE_CLIENT_ID as string,
-      clientSecret: process.env.GOOGLE_CLIENT_SECRET as string,
-    }
-  },
+  socialProviders:
+    googleClientId && googleClientSecret
+      ? {
+          google: {
+            clientId: googleClientId,
+            clientSecret: googleClientSecret
+          }
+        }
+      : {},
   user: {
     additionalFields: {
       role: {

@@ -1,5 +1,9 @@
 import type { Role } from "@/lib/types/domain";
 import { auth } from "@/lib/auth/better-auth";
+import {
+  DASHBOARD_ACCESS_COOKIE,
+  verifyDashboardAccessToken
+} from "@/lib/auth/dashboard-access";
 import { getUserOrThrow, upsertUser } from "@/lib/data/repository";
 import { ApiException } from "@/lib/utils/errors";
 
@@ -46,8 +50,19 @@ export async function requireActor(
   if (userId) {
     try {
       const user = await getUserOrThrow(userId);
+      if (user.deleted_at) {
+        throw new ApiException(
+          401,
+          "account_deleted",
+          "This account has been deleted."
+        );
+      }
       role = user.role;
-    } catch {
+    } catch (error) {
+      if (error instanceof ApiException && error.code === "account_deleted") {
+        throw error;
+      }
+
       const sessionRole = isValidRole(session?.user?.role) ? session?.user?.role : "customer";
       const sessionName =
         session?.user?.name?.trim() || session?.user?.email?.trim() || userId;
@@ -57,9 +72,26 @@ export async function requireActor(
         role: sessionRole,
         name: sessionName,
         city: "bengaluru",
-        kyc_status: "not_started"
+        kyc_status: "not_started",
+        email: session?.user?.email ?? null
       });
       role = user.role;
+    }
+  }
+
+  if (!userId || !role) {
+    const cookieHeader = request.headers.get("cookie") ?? "";
+    const dashboardCookie = cookieHeader
+      .split(";")
+      .map((part) => part.trim())
+      .find((part) => part.startsWith(`${DASHBOARD_ACCESS_COOKIE}=`))
+      ?.slice(DASHBOARD_ACCESS_COOKIE.length + 1);
+    const dashboardActor = await verifyDashboardAccessToken(
+      dashboardCookie ? decodeURIComponent(dashboardCookie) : null
+    );
+    if (dashboardActor) {
+      userId = dashboardActor.userId;
+      role = dashboardActor.role;
     }
   }
 

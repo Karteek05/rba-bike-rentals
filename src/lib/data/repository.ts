@@ -118,6 +118,63 @@ export async function upsertUser(user: User): Promise<User> {
   return data as User;
 }
 
+export async function anonymizeUserAccount(userId: string): Promise<User> {
+  const existing = await getUserOrThrow(userId);
+  const anonymized: User = {
+    ...existing,
+    name: "Deleted account",
+    email: null,
+    phone: null,
+    pan_number: null,
+    date_of_birth: null,
+    cibil_consent_at: null,
+    deleted_at: new Date().toISOString()
+  };
+
+  if (getDataMode() === "memory") {
+    const existingIndex = store.users.findIndex((item) => item.id === userId);
+    if (existingIndex < 0) {
+      throw new ApiException(404, "user_not_found", "User does not exist.");
+    }
+    store.users[existingIndex] = anonymized;
+    return anonymized;
+  }
+
+  const supabase = getSupabaseServiceClient();
+  const { data, error } = await supabase
+    .from("app_users")
+    .update({
+      name: anonymized.name,
+      email: null,
+      phone: null,
+      pan_number: null,
+      date_of_birth: null,
+      cibil_consent_at: null,
+      deleted_at: anonymized.deleted_at,
+      updated_at: anonymized.deleted_at
+    })
+    .eq("id", userId)
+    .select("*")
+    .single();
+  if (error) throw new ApiException(500, "db_error", error.message);
+  return data as User;
+}
+
+export async function listUsersByIds(userIds: string[]): Promise<User[]> {
+  const ids = [...new Set(userIds)].filter(Boolean);
+  if (!ids.length) return [];
+
+  if (getDataMode() === "memory") {
+    const include = new Set(ids);
+    return store.users.filter((item) => include.has(item.id));
+  }
+
+  const supabase = getSupabaseServiceClient();
+  const { data, error } = await supabase.from("app_users").select("*").in("id", ids);
+  if (error) throw new ApiException(500, "db_error", error.message);
+  return (data ?? []) as User[];
+}
+
 export async function getVehicleOrThrow(vehicleId: string): Promise<Vehicle> {
   if (getDataMode() === "memory") {
     const vehicle = store.vehicles.find((item) => item.id === vehicleId);
@@ -548,6 +605,28 @@ export async function getOpenPaymentOrderForBooking(
   return (data as PaymentOrder | null) ?? null;
 }
 
+export async function getLatestPaymentOrderForBooking(
+  bookingId: string
+): Promise<PaymentOrder | null> {
+  if (getDataMode() === "memory") {
+    const matches = store.paymentOrders
+      .filter((item) => item.booking_id === bookingId)
+      .sort((left, right) => right.created_at.localeCompare(left.created_at));
+    return matches[0] ?? null;
+  }
+
+  const supabase = getSupabaseServiceClient();
+  const { data, error } = await supabase
+    .from("payment_orders")
+    .select("*")
+    .eq("booking_id", bookingId)
+    .order("created_at", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+  if (error) throwStructuredDbError(error);
+  return (data as PaymentOrder | null) ?? null;
+}
+
 export async function updatePaymentOrderByProviderId(
   providerOrderId: string,
   patch: Partial<PaymentOrder>
@@ -565,6 +644,28 @@ export async function updatePaymentOrderByProviderId(
     .from("payment_orders")
     .update(patch)
     .eq("provider_order_id", providerOrderId)
+    .select("*")
+    .maybeSingle();
+  if (error) throw new ApiException(500, "db_error", error.message);
+  return (data as PaymentOrder | null) ?? null;
+}
+
+export async function updatePaymentOrderById(
+  paymentOrderId: string,
+  patch: Partial<PaymentOrder>
+): Promise<PaymentOrder | null> {
+  if (getDataMode() === "memory") {
+    const idx = store.paymentOrders.findIndex((item) => item.id === paymentOrderId);
+    if (idx < 0) return null;
+    store.paymentOrders[idx] = { ...store.paymentOrders[idx], ...patch };
+    return store.paymentOrders[idx];
+  }
+
+  const supabase = getSupabaseServiceClient();
+  const { data, error } = await supabase
+    .from("payment_orders")
+    .update(patch)
+    .eq("id", paymentOrderId)
     .select("*")
     .maybeSingle();
   if (error) throw new ApiException(500, "db_error", error.message);
@@ -663,4 +764,34 @@ export async function insertNotificationJob(job: NotificationJob): Promise<Notif
     .single();
   if (error) throw new ApiException(500, "db_error", error.message);
   return data as NotificationJob;
+}
+
+export async function listNotificationJobs(filter?: {
+  recipient?: string;
+  channel?: NotificationJob["channel"];
+  limit?: number;
+}): Promise<NotificationJob[]> {
+  if (getDataMode() === "memory") {
+    const rows = store.notificationJobs
+      .filter((item) => {
+        if (filter?.recipient && item.recipient !== filter.recipient) return false;
+        if (filter?.channel && item.channel !== filter.channel) return false;
+        return true;
+      })
+      .sort((left, right) => right.created_at.localeCompare(left.created_at));
+    return typeof filter?.limit === "number" ? rows.slice(0, filter.limit) : rows;
+  }
+
+  const supabase = getSupabaseServiceClient();
+  let query = supabase
+    .from("notification_jobs")
+    .select("*")
+    .order("created_at", { ascending: false });
+  if (filter?.recipient) query = query.eq("recipient", filter.recipient);
+  if (filter?.channel) query = query.eq("channel", filter.channel);
+  if (typeof filter?.limit === "number") query = query.limit(filter.limit);
+
+  const { data, error } = await query;
+  if (error) throw new ApiException(500, "db_error", error.message);
+  return (data ?? []) as NotificationJob[];
 }

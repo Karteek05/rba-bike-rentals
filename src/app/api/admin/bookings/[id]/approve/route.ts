@@ -9,10 +9,10 @@ export async function POST(
   try {
     const actor = await requireActor(request, ["admin"]);
     const { id } = await context.params;
-    
+
     const updated = await approveBooking(id, actor);
     return ok({ booking: updated });
-  } catch (error: any) {
+  } catch (error) {
     return fromError(error);
   }
 }

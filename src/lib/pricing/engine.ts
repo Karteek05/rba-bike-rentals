@@ -9,10 +9,10 @@ const DAY_MS = 24 * HOUR_MS;
 const WEEK_MS = 7 * DAY_MS;
 const MONTH_MS = 30 * DAY_MS;
 const HELMET_RATE = {
-  hour: 20,
-  day: 80,
-  week: 420,
-  month: 1400
+  hour: 50,
+  day: 50,
+  week: 50,
+  month: 50
 } as const;
 
 const couponRules: Record<string, number> = {
@@ -88,7 +88,10 @@ export async function computePricingQuote(input: QuoteRequest): Promise<PricingQ
     throw new ApiException(400, "invalid_duration_bucket", "Unsupported duration bucket.");
   }
 
-  const baseAmount = baseRate * count;
+  let baseAmount = baseRate * count;
+  if (bucket === "day" && count === 15) {
+    baseAmount = vehicle.rate_per_day;
+  }
   const durationAmount = 0;
   const addonAmount =
     (input.extra_helmet_count ?? 0) * HELMET_RATE[bucket] * count;
@@ -96,9 +99,9 @@ export async function computePricingQuote(input: QuoteRequest): Promise<PricingQ
   const discountRate = normalizedCouponCode ? couponRules[normalizedCouponCode] ?? 0 : 0;
   const couponDiscount = Math.round((baseAmount + addonAmount) * discountRate);
   const depositAmount = vehicle.deposit_amount;
-  const taxable = Math.max(0, baseAmount + durationAmount + addonAmount - couponDiscount);
-  const taxAmount = Math.round(taxable * GST_RATE);
-  const totalPayable = taxable + taxAmount + depositAmount;
+  const taxableInclusive = Math.max(0, baseAmount + durationAmount + addonAmount - couponDiscount);
+  const taxAmount = Math.round(taxableInclusive - taxableInclusive / (1 + GST_RATE));
+  const totalPayable = taxableInclusive + depositAmount;
   const kmIncluded = estimateKmIncluded(bucket, count);
   const excessKmRate = excessKmRateByCategory(vehicle.category);
 

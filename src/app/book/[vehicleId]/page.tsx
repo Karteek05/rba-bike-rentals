@@ -1,7 +1,7 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
-import { useParams } from "next/navigation";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import { useParams, useSearchParams } from "next/navigation";
 import Icon from "../../components/Icon";
 import { authClient } from "@/lib/auth/auth-client";
 import {
@@ -11,6 +11,10 @@ import {
   getPackageRate,
   type PackageRateKey
 } from "@/lib/fleet/catalog";
+import {
+  durationParamToPackageKey,
+  resolveBookingScheduleFromParams
+} from "@/lib/bookings/schedule";
 
 type Quote = {
   base_amount: number;
@@ -39,12 +43,6 @@ const PACKAGE_TO_VALUE: Record<PackageRateKey, number> = {
   rate_per_month: 1
 };
 
-const PACKAGE_TO_HOURS: Record<PackageRateKey, number> = {
-  rate_per_week: 24 * 7,
-  rate_per_day: 24 * 15,
-  rate_per_month: 24 * 30
-};
-
 const SPECS: Record<string, Array<{ label: string; value: string }>> = {
   veh_001: [
     { label: "Engine", value: "110 cc" },
@@ -70,6 +68,36 @@ function rupees(value: number) {
   return `Rs. ${value.toLocaleString("en-IN")}`;
 }
 
+function formatScheduleTime(value: string) {
+  return new Date(value).toLocaleString("en-IN", {
+    weekday: "short",
+    day: "numeric",
+    month: "short",
+    year: "numeric",
+    hour: "numeric",
+    minute: "2-digit"
+  });
+}
+
+function getBookingErrorMessage(
+  status: number,
+  error?: { code?: string; message?: string }
+) {
+  if (error?.code === "vehicle_unavailable") {
+    return "This scooter is already booked for the selected window. Please change dates or choose another scooter.";
+  }
+  if (error?.code === "vehicle_blocked") {
+    return "This scooter is blocked for maintenance during the selected window. Please change dates or choose another scooter.";
+  }
+  if (error?.code === "auth_required") {
+    return "Please sign in again before submitting the booking request.";
+  }
+  if (status >= 500) {
+    return "The booking service had a problem. Please try again in a moment.";
+  }
+  return error?.message ?? "Booking failed.";
+}
+
 function QuoteRow({ label, value, highlight = false }: { label: string; value: string; highlight?: boolean }) {
   return (
     <div className={`flex justify-between py-2.5 text-sm ${highlight ? "mt-1 border-t border-black/10 pt-3 font-bold text-black" : "text-uber-body-gray"}`}>
@@ -81,14 +109,21 @@ function QuoteRow({ label, value, highlight = false }: { label: string; value: s
 
 export default function BookPage() {
   const params = useParams();
+  const searchParams = useSearchParams();
+  const queryString = searchParams.toString();
   const { data: session } = authClient.useSession();
   const vehicleId = typeof params.vehicleId === "string" ? params.vehicleId : "";
   const vehicle = PUBLIC_FLEET_BY_ID[vehicleId];
+  const initialPackageKey = durationParamToPackageKey(searchParams.get("duration"));
+  const initialSchedule = resolveBookingScheduleFromParams(
+    searchParams,
+    initialPackageKey
+  );
 
-  const [packageKey, setPackageKey] = useState<PackageRateKey>("rate_per_week");
+  const [packageKey, setPackageKey] = useState<PackageRateKey>(initialPackageKey);
   const [extraHelmet, setExtraHelmet] = useState(false);
   const [coupon, setCoupon] = useState("");
-  const [pickupZone, setPickupZone] = useState("Indiranagar");
+  const [pickupZone, setPickupZone] = useState(initialSchedule.pickupZone);
   const [pickupAddress, setPickupAddress] = useState("");
   const [legalName, setLegalName] = useState("");
   const [profileEmail, setProfileEmail] = useState("");
@@ -102,6 +137,21 @@ export default function BookPage() {
 
   const durationBucket = PACKAGE_TO_BUCKET[packageKey];
   const durationValue = PACKAGE_TO_VALUE[packageKey];
+  const bookingSchedule = useMemo(
+    () => resolveBookingScheduleFromParams(searchParams, packageKey),
+    [queryString, searchParams, packageKey]
+  );
+
+  useEffect(() => {
+    const nextPackageKey = durationParamToPackageKey(searchParams.get("duration"));
+    const nextSchedule = resolveBookingScheduleFromParams(
+      searchParams,
+      nextPackageKey
+    );
+    setPackageKey(nextPackageKey);
+    setPickupZone(nextSchedule.pickupZone);
+    setBookingError(null);
+  }, [queryString, searchParams]);
 
   const fetchQuote = useCallback(async () => {
     if (!vehicle || !session?.user?.id) return;
@@ -142,6 +192,11 @@ export default function BookPage() {
   }, [fetchQuote]);
 
   async function handleReserve() {
+    if (!session?.user?.id) {
+      setBookingError("Please sign in before submitting a booking request.");
+      return;
+    }
+
     if (!legalName.trim() || !profileEmail.trim() || !mobile.trim()) {
       setBookingError("Name, email, and mobile are required.");
       return;
@@ -149,8 +204,6 @@ export default function BookPage() {
 
     setBookingLoading(true);
     setBookingError(null);
-    const pickup = new Date(Date.now() + 3_600_000).toISOString();
-    const drop = new Date(Date.now() + 3_600_000 + PACKAGE_TO_HOURS[packageKey] * 3_600_000).toISOString();
 
     try {
       const res = await fetch("/api/bookings", {
@@ -160,8 +213,8 @@ export default function BookPage() {
           user_id: session?.user?.id,
           vehicle_id: vehicleId,
           city: "bengaluru",
-          pickup_at: pickup,
-          drop_at: drop,
+          pickup_at: bookingSchedule.pickupAt,
+          drop_at: bookingSchedule.dropAt,
           pickup_zone: pickupZone,
           pickup_address: pickupAddress || pickupZone,
           duration_bucket: durationBucket,
@@ -177,14 +230,14 @@ export default function BookPage() {
           }
         })
       });
-      const json = await res.json();
-      if (!res.ok || !json.ok) {
-        setBookingError(json?.error?.message ?? "Booking failed");
+      const json = await res.json().catch(() => null);
+      if (!res.ok || !json?.ok) {
+        setBookingError(getBookingErrorMessage(res.status, json?.error));
       } else {
         setBookingId(json.data.booking.id);
       }
     } catch {
-      setBookingError("Network error. Please try again.");
+      setBookingError("Could not reach the booking service. Check that the site is running and try again.");
     } finally {
       setBookingLoading(false);
     }
@@ -312,7 +365,10 @@ export default function BookPage() {
                     <button
                       key={plan.key}
                       type="button"
-                      onClick={() => setPackageKey(plan.rateKey)}
+                      onClick={() => {
+                        setPackageKey(plan.rateKey);
+                        setBookingError(null);
+                      }}
                       className={`rounded-full px-4 py-1.5 text-xs font-medium transition-colors ${
                         packageKey === plan.rateKey ? "bg-black text-white" : "bg-[#efefef] text-black hover:bg-[#e2e2e2]"
                       }`}
@@ -361,6 +417,29 @@ export default function BookPage() {
                   onChange={(event) => setPickupAddress(event.target.value)}
                   className="w-full rounded-lg border border-black/20 px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-black"
                 />
+              </div>
+
+              <div className="mb-4 rounded-2xl border border-black/5 bg-[#f7f7f7] p-5">
+                <h3 className="mb-3 text-sm font-bold text-black">Selected rental window</h3>
+                <div className="space-y-2 text-[13px] text-uber-body-gray">
+                  <div className="flex justify-between gap-4">
+                    <span>Pickup</span>
+                    <span className="text-right font-semibold text-black">
+                      {formatScheduleTime(bookingSchedule.pickupAt)}
+                    </span>
+                  </div>
+                  <div className="flex justify-between gap-4">
+                    <span>Drop</span>
+                    <span className="text-right font-semibold text-black">
+                      {formatScheduleTime(bookingSchedule.dropAt)}
+                    </span>
+                  </div>
+                </div>
+                {bookingSchedule.usedFallback && (
+                  <p className="mt-3 text-xs text-uber-muted-gray">
+                    No date selection was passed in, so this uses the selected package duration from the next available hour.
+                  </p>
+                )}
               </div>
 
               <div className="mb-4 border-t border-black/5 pt-4">

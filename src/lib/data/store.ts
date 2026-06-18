@@ -96,14 +96,18 @@ export const store: {
       name: "Rahul Customer",
       role: "customer",
       city: "bengaluru",
-      kyc_status: "verified"
+      kyc_status: "not_started",
+      email: "rahul@example.com",
+      phone: "+919876543210"
     },
     {
       id: "cust_002",
       name: "Asha Customer",
       role: "customer",
       city: "bengaluru",
-      kyc_status: "not_started"
+      kyc_status: "not_started",
+      email: "asha@example.com",
+      phone: "+919876543211"
     },
     {
       id: "partner_001",
@@ -129,6 +133,10 @@ export const store: {
       provider: "setu_digilocker",
       aadhaar_verified: true,
       dl_verified: true,
+      cibil_score: 782,
+      cibil_risk_band: "low",
+      cibil_checked_at: now,
+      pan_last4: "1234",
       needs_manual_review: false,
       updated_at: now
     },
