@@ -16,6 +16,7 @@ import {
   UserRound
 } from "lucide-react";
 import { authClient } from "@/lib/auth/auth-client";
+import { isGoogleAuthEnabled, startGoogleSignIn } from "@/lib/auth/google-sign-in";
 import type { Booking, User } from "@/lib/types/domain";
 import {
   readAccountPayload,
@@ -163,12 +164,9 @@ export default function ProfilePage() {
 
   async function handleGoogleSignIn() {
     setError("");
-    const { error: signInError } = await authClient.signIn.social({
-      provider: "google",
-      callbackURL: "/profile"
-    });
-    if (signInError) {
-      setError(signInError.message || "Google sign-in could not be started.");
+    const result = await startGoogleSignIn("/profile");
+    if (!result.ok) {
+      setError(result.error);
     }
   }
 

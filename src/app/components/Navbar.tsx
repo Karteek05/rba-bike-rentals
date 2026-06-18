@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useEffect, useState } from "react";
-import { usePathname, useSearchParams } from "next/navigation";
+import { usePathname } from "next/navigation";
 import { LogOut, Menu, X } from "lucide-react";
 import { authClient } from "@/lib/auth/auth-client";
 
@@ -26,7 +26,6 @@ function isLinkActive(pathname: string, href: string) {
 
 export default function Navbar() {
   const pathname = usePathname();
-  const searchParams = useSearchParams();
   const [open, setOpen] = useState(false);
   const { data: session } = authClient.useSession();
 
@@ -75,7 +74,7 @@ export default function Navbar() {
   const role = session?.user ? ((session.user as any).role as string) : null;
   const dashboardHref = role === "admin" ? "/admin" : role === "partner_investor" ? "/partner" : role === "customer" ? "/customer" : null;
   const authMode =
-    pathname === "/login" && searchParams.get("mode") === "register"
+    pathname === "/signup"
       ? "register"
       : pathname === "/login"
         ? "signin"
@@ -157,7 +156,7 @@ export default function Navbar() {
                 Login
               </Link>
               <Link
-                href="/login?mode=register"
+                href="/signup"
                 className={`nav-focus rounded-full px-4 py-2 text-sm font-black transition-colors ${
                   authMode === "register"
                     ? "bg-[color:var(--color-ink)] text-white shadow-sm"
@@ -259,7 +258,7 @@ export default function Navbar() {
                   Login
                 </Link>
                 <Link
-                  href="/login?mode=register"
+                  href="/signup"
                   className={`nav-focus rounded-lg px-4 py-3 text-sm font-black ${
                     authMode === "register"
                       ? "bg-[color:var(--color-ink)] text-white"

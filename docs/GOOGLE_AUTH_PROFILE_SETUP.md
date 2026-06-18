@@ -9,12 +9,13 @@ Set these in the Vercel project for Production:
 ```text
 GOOGLE_CLIENT_ID=...
 GOOGLE_CLIENT_SECRET=...
+NEXT_PUBLIC_GOOGLE_CLIENT_ID=...
 BETTER_AUTH_SECRET=...
 BETTER_AUTH_URL=https://rbabikerentals.vercel.app
 NEXT_PUBLIC_BETTER_AUTH_URL=https://rbabikerentals.vercel.app
 ```
 
-`NEXT_PUBLIC_BETTER_AUTH_URL` is optional for same-origin production requests, but keeping it aligned with the deployed domain makes auth redirects explicit.
+`NEXT_PUBLIC_GOOGLE_CLIENT_ID` should match `GOOGLE_CLIENT_ID` so the login and signup pages can show the Google button.
 
 ## Google OAuth console
 
