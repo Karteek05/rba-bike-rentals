@@ -464,13 +464,16 @@ export async function approveBooking(
 
   const user = await getUserOrThrow(booking.user_id);
   
+  const supabase = getSupabaseServiceClient();
+  const { data: authUser } = await supabase.from("user").select("email").eq("id", user.id).single();
+  
   const paymentLinkData = await createRazorpayPaymentLink({
     amountInPaise: booking.quote.total_payable * 100,
     receipt: booking.id,
     description: `Payment for booking ${booking.id}`,
     customer: {
       name: user.name,
-      email: user.email,
+      email: authUser?.email,
     }
   });
 
@@ -491,8 +494,6 @@ export async function approveBooking(
   });
 
   try {
-    const supabase = getSupabaseServiceClient();
-    const { data: authUser } = await supabase.from("user").select("email").eq("id", user.id).single();
     if (authUser?.email) {
       await sendBookingApprovedEmail(authUser.email, booking, paymentLinkData.short_url);
     }
